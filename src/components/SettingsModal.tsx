@@ -3,6 +3,17 @@ import type { AnkiFieldSource, AppSettings, Difficulty } from "../state/types";
 import { DIFFICULTY_PROFILES } from "../state/difficulty";
 import { ANKI_FIELD_OPTIONS } from "../lib/ankiFields";
 import { fetchDeckNames, fetchModelFieldNames, fetchModelNames } from "../lib/ankiConnect";
+import { validateTemplateMacros } from "../lib/template";
+
+const NOTES_TEMPLATE_ALLOWLIST = [
+  "word",
+  "reading",
+  "difficulty",
+  "meaning",
+  "meaningNumber",
+  "sentenceJp",
+  "sentenceEn",
+];
 
 function SectionTitle(props: { children: React.ReactNode; right?: React.ReactNode }) {
   return (
@@ -169,6 +180,10 @@ export function SettingsModal(props: {
   const ankiConfigured = !!settings.ankiDeckName || !!settings.ankiModelName;
   const ankiHasProblem = !!ankiError || !!ankiFieldsError || missingDeck || missingModel;
   const ankiDefaultOpen = ankiConfigured || ankiHasProblem;
+  const notesTemplateValidation = useMemo(
+    () => validateTemplateMacros(settings.notesTemplate, NOTES_TEMPLATE_ALLOWLIST),
+    [settings.notesTemplate],
+  );
 
   return (
     <div
@@ -470,6 +485,20 @@ export function SettingsModal(props: {
                   onChange={(e) => patch({ notesTemplate: e.target.value })}
                   placeholder="{word} here means “{meaning}”."
                 />
+                {/* Allow editing while invalid, but surface errors inline. */}
+                {notesTemplateValidation.unknown.length > 0 || notesTemplateValidation.hasForbiddenNotes ? (
+                  <div className="small" style={{ color: "#f2a2a2", marginTop: 6 }}>
+                    {notesTemplateValidation.hasForbiddenNotes ? (
+                      <div>Unsupported macro: {"{notes}"} is reserved and cannot be used here.</div>
+                    ) : null}
+                    {notesTemplateValidation.unknown.length > 0 ? (
+                      <div>
+                        Unknown macros:{" "}
+                        {notesTemplateValidation.unknown.map((macro) => `{${macro}}`).join(", ")}.
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
               </Field>
 
               <Field label="Tags" help="Space-delimited. Will be added to exported notes.">
