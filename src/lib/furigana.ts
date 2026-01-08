@@ -1,0 +1,123 @@
+import Kuroshiro from "kuroshiro";
+import KuromojiAnalyzer from "@sglkc/kuroshiro-analyzer-kuromoji";
+
+export type FuriganaMode = "hiragana" | "katakana";
+
+export type FuriganaCache = {
+  key: string;
+  kana?: string;
+  rubyHtml?: string;
+  anki?: string;
+};
+
+const PARSER_ID = "kuroshiro+kuromoji-ipadic";
+const PARSER_VERSION = "1";
+
+let kuroshiro: Kuroshiro | null = null;
+let initPromise: Promise<void> | null = null;
+let initError: string | null = null;
+
+export function buildFuriganaCacheKey(text: string, mode: FuriganaMode): string {
+  return [PARSER_ID, PARSER_VERSION, mode, text].join("|");
+}
+
+export function getFuriganaInitError(): string | null {
+  return initError;
+}
+
+export function isFuriganaReady(): boolean {
+  return !!kuroshiro;
+}
+
+export async function initFurigana(): Promise<void> {
+  if (kuroshiro) return;
+  if (initPromise) return initPromise;
+
+  initPromise = (async () => {
+    const instance = new Kuroshiro();
+    const analyzer = new KuromojiAnalyzer({ dictPath: "/kuromoji-dict" });
+    await instance.init(analyzer);
+    kuroshiro = instance;
+    initError = null;
+  })().catch((err) => {
+    initError = err instanceof Error ? err.message : String(err);
+    throw err;
+  });
+
+  return initPromise;
+}
+
+async function ensureFurigana(): Promise<Kuroshiro> {
+  await initFurigana();
+  if (!kuroshiro) {
+    throw new Error("Furigana engine failed to initialize.");
+  }
+  return kuroshiro;
+}
+
+export async function toKana(text: string, mode: FuriganaMode): Promise<string> {
+  const engine = await ensureFurigana();
+  return engine.convert(text, { to: mode, mode: "normal" });
+}
+
+export async function toRubyHtml(text: string, mode: FuriganaMode): Promise<string> {
+  const engine = await ensureFurigana();
+  return engine.convert(text, { to: mode, mode: "furigana" });
+}
+
+function rubyHtmlToAnki(rubyHtml: string): string {
+  const cleaned = rubyHtml.replace(/<rp>.*?<\/rp>/g, "");
+  const rubyRegex = /<ruby>(.*?)<rt>(.*?)<\/rt>.*?<\/ruby>/g;
+  let result = "";
+  let lastIndex = 0;
+
+  const needsSpaceBeforeKanji = (prevChar: string | undefined) => {
+    if (!prevChar) return false;
+    if (/\s/.test(prevChar)) return false;
+    if (/[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~、。・！？「」（）『』【】]/.test(prevChar)) return false;
+    return true;
+  };
+
+  const hasKanji = (text: string) => /[\u4e00-\u9faf]/.test(text);
+
+  for (const match of cleaned.matchAll(rubyRegex)) {
+    const index = match.index ?? 0;
+    result += cleaned.slice(lastIndex, index);
+    const base = match[1] ?? "";
+    const reading = match[2] ?? "";
+    const prevChar = result.slice(-1);
+    const prefix = hasKanji(base) && needsSpaceBeforeKanji(prevChar) ? " " : "";
+    result += `${prefix}${base}[${reading}]`;
+    lastIndex = index + match[0].length;
+  }
+
+  result += cleaned.slice(lastIndex);
+  return result;
+}
+
+export async function toAnkiBracket(text: string, mode: FuriganaMode): Promise<string> {
+  const rubyHtml = await toRubyHtml(text, mode);
+  return rubyHtmlToAnki(rubyHtml);
+}
+
+export async function ensureFuriganaCacheEntry(
+  text: string,
+  mode: FuriganaMode,
+  existing: FuriganaCache | undefined,
+  field: keyof Omit<FuriganaCache, "key">,
+): Promise<FuriganaCache> {
+  const key = buildFuriganaCacheKey(text, mode);
+  const cache: FuriganaCache = existing?.key === key ? { ...existing } : { key };
+
+  if (cache[field]) return cache;
+
+  if (field === "kana") {
+    cache.kana = await toKana(text, mode);
+  } else if (field === "rubyHtml") {
+    cache.rubyHtml = await toRubyHtml(text, mode);
+  } else if (field === "anki") {
+    cache.anki = await toAnkiBracket(text, mode);
+  }
+
+  return cache;
+}

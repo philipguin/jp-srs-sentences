@@ -1,18 +1,82 @@
-import { useMemo, useState } from "react";
-import type { Job, SentenceItem } from "../state/types";
+import { useEffect, useMemo, useState } from "react";
+import type { AppSettings, Job, SentenceItem } from "../state/types";
 import { DIFFICULTY_PROFILES } from "../state/difficulty";
 import { touch } from "../state/store";
+import { buildFuriganaCacheKey, ensureFuriganaCacheEntry } from "../lib/furigana";
+
+type DisplayMode = "natural" | "furigana" | "kana";
+
+function SentenceDisplay(props: {
+  sentence: SentenceItem;
+  displayMode: DisplayMode;
+  furiganaAvailable: boolean;
+  kanaMode: AppSettings["furiganaKanaMode"];
+  onUpdateSentence: (sentenceId: string, cache: SentenceItem["furiganaCache"]) => void;
+}) {
+  const { sentence, displayMode, furiganaAvailable, kanaMode, onUpdateSentence } = props;
+  const cacheKey = useMemo(() => buildFuriganaCacheKey(sentence.jp, kanaMode), [sentence.jp, kanaMode]);
+  const cache = sentence.furiganaCache?.key === cacheKey ? sentence.furiganaCache : undefined;
+
+  useEffect(() => {
+    if (!furiganaAvailable) return;
+    if (!sentence.jp.trim()) return;
+    if (displayMode === "natural") return;
+    const field = displayMode === "kana" ? "kana" : "rubyHtml";
+    if (cache?.[field]) return;
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const nextCache = await ensureFuriganaCacheEntry(sentence.jp, kanaMode, cache, field);
+        if (cancelled) return;
+        if (nextCache.key === cache?.key && nextCache[field] === cache?.[field]) return;
+        onUpdateSentence(sentence.id, nextCache);
+      } catch {
+        // Ignore and fall back to plain text.
+      }
+    }
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cache, displayMode, furiganaAvailable, kanaMode, onUpdateSentence, sentence]);
+
+  if (displayMode === "kana") {
+    if (furiganaAvailable && cache?.kana) {
+      return <span>{cache.kana}</span>;
+    }
+    return <span>{sentence.jp}</span>;
+  }
+
+  if (displayMode === "furigana" && furiganaAvailable && cache?.rubyHtml) {
+    return <span dangerouslySetInnerHTML={{ __html: cache.rubyHtml }} />;
+  }
+
+  return <span>{sentence.jp}</span>;
+}
 
 export function GenerationsPane(props: {
   job: Job;
+  settings: AppSettings;
   busy: boolean;
   err: string | null;
   notice: string | null;
   onClearMessages: () => void;
   onChange: (job: Job) => void;
+  furiganaAvailable: boolean;
+  furiganaStatus: "idle" | "loading" | "ready" | "error";
 }) {
-  const { job, busy, err, notice, onClearMessages, onChange } = props;
+  const { job, settings, busy, err, notice, onClearMessages, onChange, furiganaAvailable, furiganaStatus } = props;
   const [groupBy, setGroupBy] = useState<"definition" | "batch">("definition");
+  const [displayMode, setDisplayMode] = useState<DisplayMode>("natural");
+
+  useEffect(() => {
+    if (!furiganaAvailable && displayMode !== "natural") {
+      setDisplayMode("natural");
+    }
+  }, [displayMode, furiganaAvailable]);
 
   function onRemove(sentenceId: string) {
     onChange(touch({ ...job, sentences: job.sentences.filter((sentence) => sentence.id !== sentenceId) }));
@@ -101,28 +165,56 @@ export function GenerationsPane(props: {
   const hasSentences = job.sentences.length > 0;
   const allExportsEnabled = hasSentences && job.sentences.every((sentence) => sentence.exportEnabled);
 
+  function updateSentenceCache(sentenceId: string, cache: SentenceItem["furiganaCache"]) {
+    onChange(
+      touch({
+        ...job,
+        sentences: job.sentences.map((sentence) =>
+          sentence.id === sentenceId ? { ...sentence, furiganaCache: cache } : sentence,
+        ),
+      }),
+    );
+  }
+
   return (
     <div className="paneInner">
       <div className="paneHeader">
         <div className="paneTitle">Generations</div>
-        <div style={{ fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>
-          <div className="muted" style={{ fontSize: 14 }}>Group by</div>
-          <button
-            className={`btn secondary ${groupBy === "definition" ? "active" : ""}`}
-            onClick={() => setGroupBy("definition")}
-            disabled={busy}
-            style={{ padding: "2px 6px" }}
-          >
-            Definition
-          </button>
-          <button
-            className={`btn secondary ${groupBy === "batch" ? "active" : ""}`}
-            onClick={() => setGroupBy("batch")}
-            disabled={busy}
-            style={{ padding: "2px 6px" }}
-          >
-            Batch
-          </button>
+        <div style={{ fontSize: 14, display: "flex", alignItems: "center", gap: 10 }}>
+          {settings.enableFurigana && furiganaStatus === "loading" ? (
+            <span className="badge">loading…</span>
+          ) : null}
+          {furiganaAvailable ? (
+            <select
+              className="select"
+              value={displayMode}
+              onChange={(e) => setDisplayMode(e.target.value as DisplayMode)}
+              style={{ padding: "4px 8px" }}
+            >
+              <option value="natural">Naturally</option>
+              <option value="furigana">With furigana</option>
+              <option value="kana">As kana</option>
+            </select>
+          ) : null}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div className="muted" style={{ fontSize: 14 }}>Group by</div>
+            <button
+              className={`btn secondary ${groupBy === "definition" ? "active" : ""}`}
+              onClick={() => setGroupBy("definition")}
+              disabled={busy}
+              style={{ padding: "2px 6px" }}
+            >
+              Definition
+            </button>
+            <button
+              className={`btn secondary ${groupBy === "batch" ? "active" : ""}`}
+              onClick={() => setGroupBy("batch")}
+              disabled={busy}
+              style={{ padding: "2px 6px" }}
+            >
+              Batch
+            </button>
+          </div>
         </div>
       </div>
 
@@ -174,7 +266,13 @@ export function GenerationsPane(props: {
                           >
                             <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start" }}>
                               <div style={{ flex: 1, minWidth: 0, fontWeight: 400, lineHeight: 1.3 }}>
-                                {sentence.jp}
+                                <SentenceDisplay
+                                  sentence={sentence}
+                                  displayMode={displayMode}
+                                  furiganaAvailable={furiganaAvailable}
+                                  kanaMode={settings.furiganaKanaMode}
+                                  onUpdateSentence={updateSentenceCache}
+                                />
                               </div>
                               <div style={{ flexShrink: 0, whitespace: "nowrap", display: "flex", alignItems: "start", gap: 10 }}>
                                 <div className="muted" style={{ fontSize: 12 }}>
@@ -247,7 +345,13 @@ export function GenerationsPane(props: {
                           >
                             <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start" }}>
                               <div style={{ flex: 1, minWidth: 0, fontWeight: 400, lineHeight: 1.3 }}>
-                                {sentence.jp}
+                                <SentenceDisplay
+                                  sentence={sentence}
+                                  displayMode={displayMode}
+                                  furiganaAvailable={furiganaAvailable}
+                                  kanaMode={settings.furiganaKanaMode}
+                                  onUpdateSentence={updateSentenceCache}
+                                />
                               </div>
                               <div className="muted" style={{ fontSize: 12, flexShrink: 0, whiteSpace: "nowrap", display: "flex", alignItems: "start", gap: 10 }}>
                                 {sentence.batchId && "B" + sentence.batchId}

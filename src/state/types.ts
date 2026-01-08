@@ -35,6 +35,7 @@ export interface SentenceItem {
   createdAt: number;
   exportEnabled: boolean;
   exportStatus: SentenceExportStatus;
+  furiganaCache?: FuriganaCache;
   generationId?: string;
   batchId?: number;
   definitionSnapshot?: {
@@ -46,7 +47,22 @@ export interface SentenceItem {
 
 export type SentenceExportStatus = "new" | "exported" | "failed";
 
-export type AnkiFieldSource = "" | "word" | "meaning" | "sentenceJp" | "sentenceEn" | "difficulty" | "notes";
+export type AnkiFieldSource =
+  | ""
+  | "word"
+  | "wordKana"
+  | "wordFuri"
+  | "wordFuriHtml"
+  | "meaning"
+  | "meaningNumber"
+  | "sentenceJp"
+  | "sentenceJpKana"
+  | "sentenceJpFuri"
+  | "sentenceJpFuriHtml"
+  | "sentenceEn"
+  | "difficulty"
+  | "notes"
+  | "reading";
 
 export interface Job {
   id: string;
@@ -58,11 +74,21 @@ export interface Job {
   generations: SentenceGeneration[];
   generationBatches: GenerationBatch[];
   sentences: SentenceItem[];
+  furiganaCache?: FuriganaCache;
   status: JobStatus;
   createdAt: number;
   updatedAt: number;
   lastError?: string;
 }
+
+export interface FuriganaCache {
+  key: string;
+  kana?: string;
+  rubyHtml?: string;
+  anki?: string;
+}
+
+export type FuriganaMode = "hiragana" | "katakana";
 
 export interface AppSettings {
   apiKey: string;
@@ -79,6 +105,9 @@ export interface AppSettings {
   ankiFieldMappings: Record<string, Record<string, AnkiFieldSource>>;
   ankiTags: string;
   ankiIncludeDifficultyTag: boolean;
+
+  enableFurigana: boolean;
+  furiganaKanaMode: FuriganaMode;
 
   // We'll add prompt templates + AnkiConnect later.
 }
