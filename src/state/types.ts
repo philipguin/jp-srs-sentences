@@ -10,7 +10,7 @@ export type DifficultyProfile = {
   maxJapaneseChars: number;
 };
 
-export type JobStatus = "draft" | "generated" | "edited" | "error";
+export type JobStatus = "draft" | "generating" | "ready" | "error";
 
 export interface DefinitionSpec {
   index: number;

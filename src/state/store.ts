@@ -13,7 +13,7 @@ export function createEmptyJob(opts?: { difficulty?: Difficulty }): Job {
     difficulty: opts?.difficulty ?? "beginner",
     definitionsRaw: "",
     definitions: [],
-    results: [],
+    generations: [],
     status: "draft",
     createdAt: now,
     updatedAt: now,
