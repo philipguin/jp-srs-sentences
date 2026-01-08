@@ -10,5 +10,11 @@ export function defaultSettings(): AppSettings {
 
     defaultDifficulty: "beginner",
     defaultCountPreset: "1",
+
+    ankiDeckName: "",
+    ankiModelName: "",
+    ankiFieldMappings: {},
+    ankiTags: "",
+    ankiIncludeDifficultyTag: false,
   };
 }
