@@ -7,9 +7,11 @@ import { applyTemplate } from "../lib/template";
 export function WordSetupPane(props: {
   job: Job;
   settings: AppSettings;
+  busy: boolean;
+  onGenerate: () => void;
   onChange: (job: Job) => void;
 }) {
-  const { job, settings, onChange } = props;
+  const { job, settings, busy, onGenerate, onChange } = props;
 
   function setDefinitionsRaw(raw: string) {
     const parsed = parseDefinitions(raw);
@@ -160,6 +162,11 @@ export function WordSetupPane(props: {
             ))}
           </div>
         )}
+        <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 4 }}>
+          <button className="btn" onClick={onGenerate} disabled={busy}>
+            {busy ? "Generating…" : "Generate Sentences"}
+          </button>
+        </div>
       </div>
     </div>
   );
