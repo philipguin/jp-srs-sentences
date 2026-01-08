@@ -21,6 +21,8 @@ export function WordSetupPane(props: {
         ...job,
         definitionsRaw: raw,
         definitions: merged,
+        generations: [],
+        status: "draft",
       })
     );
   }

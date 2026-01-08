@@ -20,13 +20,21 @@ export interface DefinitionSpec {
 
 export interface SentenceItem {
   id: string;
-  defIndex: number;
   jp: string;
   en: string;
   notes: string;
-  locked: boolean;
   source: "generated" | "edited";
+  createdAt: number;
+  exportEnabled: boolean;
+  exportStatus: SentenceExportStatus;
+  generationId?: string;
+  definitionSnapshot?: {
+    index: number;
+    text: string;
+  };
 }
+
+export type SentenceExportStatus = "new" | "exported" | "failed";
 
 export interface Job {
   id: string;
@@ -36,6 +44,7 @@ export interface Job {
   definitionsRaw: string;
   definitions: DefinitionSpec[];
   generations: SentenceGeneration[];
+  sentences: SentenceItem[];
   status: JobStatus;
   createdAt: number;
   updatedAt: number;

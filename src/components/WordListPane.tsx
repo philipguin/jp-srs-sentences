@@ -24,7 +24,7 @@ export function WordListPane(props: {
             const selected = job.id === selectedJobId;
             const title = job.word.trim() ? job.word.trim() : "(untitled)";
             const defs = job.definitions.length;
-            const res = job.generations.length;
+            const res = job.sentences.length;
 
             return (
               <div
@@ -37,7 +37,7 @@ export function WordListPane(props: {
                 <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 <div style={{ fontWeight: 650 }}>{title}</div>
                 <div className="small">
-                  defs: {defs} · gens: {res} · {job.status}
+                  defs: {defs} · sentences: {res} · {job.status}
                 </div>
               </div>
 
