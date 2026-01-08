@@ -62,6 +62,7 @@ export const DIFFICULTY_PROFILES: Record<Difficulty, DifficultyProfile> = {
 
   "ultra-literary": {
     label: "Ultra-Literary (⚠️)",
+    shortLabel: "Ultra-Literary",
     shortHelp: "Dense, abstract, literary Japanese intended to be difficult.",
     maxJapaneseChars: 200,
     promptGuidelines: [

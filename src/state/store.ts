@@ -14,6 +14,7 @@ export function createEmptyJob(opts?: { difficulty?: Difficulty }): Job {
     definitionsRaw: "",
     definitions: [],
     generations: [],
+    generationBatches: [],
     sentences: [],
     status: "draft",
     createdAt: now,
@@ -30,6 +31,7 @@ export function normalizeJob(job: Job): Job {
     ...job,
     definitions: job.definitions ?? [],
     generations: job.generations ?? [],
+    generationBatches: job.generationBatches ?? [],
     sentences: (job.sentences ?? []).map((sentence) => ({
       ...sentence,
       exportEnabled: sentence.exportEnabled ?? true,
