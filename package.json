@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@sglkc/kuroshiro-analyzer-kuromoji": "^1.0.1",
+    "kuroshiro": "^1.2.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
