@@ -1,48 +1,18 @@
 import { useMemo, useState } from "react";
-import type { AppSettings, GenerationBatch, Job, SentenceGeneration, SentenceItem } from "../state/types";
+import type { Job, SentenceItem } from "../state/types";
 import { DIFFICULTY_PROFILES } from "../state/difficulty";
-import { touch, uid } from "../state/store";
-import { generateSentences } from "../lib/openaiResponses";
-import { buildMockGenerations } from "../lib/mockGeneration";
+import { touch } from "../state/store";
 
 export function GenerationsPane(props: {
   job: Job;
-  settings: AppSettings;
+  busy: boolean;
+  err: string | null;
+  notice: string | null;
+  onClearMessages: () => void;
   onChange: (job: Job) => void;
 }) {
-  const { job, settings, onChange } = props;
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const { job, busy, err, notice, onClearMessages, onChange } = props;
   const [groupBy, setGroupBy] = useState<"definition" | "batch">("definition");
-
-  function buildSentenceItem(generation: SentenceGeneration, batchId: number): SentenceItem {
-    const definition = job.definitions.find((item) => item.index === generation.defIndex);
-    return {
-      id: uid(),
-      jp: generation.jp,
-      en: generation.en,
-      notes: generation.notes,
-      source: "generated",
-      createdAt: generation.createdAt,
-      exportEnabled: true,
-      exportStatus: "new",
-      generationId: generation.id,
-      batchId,
-      difficulty: generation.difficulty,
-      definitionSnapshot: definition
-        ? {
-            index: definition.index,
-            text: definition.text,
-          }
-        : undefined,
-    };
-  }
-
-  function nextBatchId(batches: GenerationBatch[]): number {
-    if (batches.length === 0) return 1;
-    return Math.max(...batches.map((batch) => batch.id)) + 1;
-  }
 
   function onRemove(sentenceId: string) {
     onChange(touch({ ...job, sentences: job.sentences.filter((sentence) => sentence.id !== sentenceId) }));
@@ -61,51 +31,26 @@ export function GenerationsPane(props: {
     );
   }
 
-  async function onGenerate() {
-    setErr(null);
-    setNotice(null);
-    setBusy(true);
-    try {
-      onChange(touch({ ...job, status: "generating" }));
-
-      const results: SentenceGeneration[] = settings.apiKey
-        ? await generateSentences(job, settings)
-        : buildMockGenerations(job, settings);
-
-      if (!settings.apiKey) {
-        setNotice("No API key set — using mock results.");
-      }
-
-      const batchId = nextBatchId(job.generationBatches);
-      const batchCreatedAt = results[0]?.createdAt ?? Date.now();
-      const batch: GenerationBatch = {
-        id: batchId,
-        createdAt: batchCreatedAt,
-        difficulty: job.difficulty,
-        definitions: job.definitions.map((definition) => ({ ...definition })),
-      };
-      const nextItems = results.map((generation) => buildSentenceItem(generation, batchId));
-      onChange(
-        touch({
-          ...job,
-          generations: results,
-          generationBatches: [...job.generationBatches, batch],
-          sentences: [...job.sentences, ...nextItems],
-          status: "ready",
-        })
-      );
-    } catch (e: any) {
-      const msg = e?.message ?? String(e);
-      setErr(msg);
-      onChange(touch({ ...job, status: "error" }));
-    } finally {
-      setBusy(false);
-    }
+  function onClear() {
+    if (!job.sentences.length) return;
+    const confirmed = window.confirm("Clear all sentences for this word?");
+    if (!confirmed) return;
+    onChange(touch({ ...job, generations: [], generationBatches: [], sentences: [], status: "draft" }));
+    onClearMessages();
   }
 
-  function onClear() {
-    onChange(touch({ ...job, generations: [], generationBatches: [], sentences: [], status: "draft" }));
-    setErr(null);
+  function onToggleAllExports() {
+    if (!job.sentences.length) return;
+    const allChecked = job.sentences.every((sentence) => sentence.exportEnabled);
+    onChange(
+      touch({
+        ...job,
+        sentences: job.sentences.map((sentence) => ({
+          ...sentence,
+          exportEnabled: !allChecked,
+        })),
+      })
+    );
   }
 
   const groupedByBatch = useMemo(() => {
@@ -153,16 +98,30 @@ export function GenerationsPane(props: {
       .sort((a, b) => a.key - b.key);
   }, [job.sentences]);
 
+  const hasSentences = job.sentences.length > 0;
+  const allExportsEnabled = hasSentences && job.sentences.every((sentence) => sentence.exportEnabled);
+
   return (
     <div className="paneInner">
       <div className="paneHeader">
         <div className="paneTitle">Generations</div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button className="btn secondary" onClick={onClear} disabled={busy || !(job?.sentences?.length)}>
-            Clear
+        <div style={{ fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>
+          <div className="muted" style={{ fontSize: 14 }}>Group by</div>
+          <button
+            className={`btn secondary ${groupBy === "definition" ? "active" : ""}`}
+            onClick={() => setGroupBy("definition")}
+            disabled={busy}
+            style={{ padding: "2px 6px" }}
+          >
+            Definition
           </button>
-          <button className="btn" onClick={onGenerate} disabled={busy}>
-            {busy ? "Generating…" : "Generate"}
+          <button
+            className={`btn secondary ${groupBy === "batch" ? "active" : ""}`}
+            onClick={() => setGroupBy("batch")}
+            disabled={busy}
+            style={{ padding: "2px 6px" }}
+          >
+            Batch
           </button>
         </div>
       </div>
@@ -179,32 +138,11 @@ export function GenerationsPane(props: {
           <div className="muted" style={{ whiteSpace: "pre-wrap" }}>{notice}</div>
         </div>
       )}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 12px 0px 12px" }}>
-        <div className="muted" style={{ fontSize: 12 }}>Group by</div>
-        <div style={{ display: "flex", gap: 6 }}>
-          <button
-            className={`btn secondary ${groupBy === "definition" ? "active" : ""}`}
-            onClick={() => setGroupBy("definition")}
-            disabled={busy}
-            style={{ padding: "4px 8px", fontSize: 12 }}
-          >
-            Definition
-          </button>
-          <button
-            className={`btn secondary ${groupBy === "batch" ? "active" : ""}`}
-            onClick={() => setGroupBy("batch")}
-            disabled={busy}
-            style={{ padding: "4px 8px", fontSize: 12 }}
-          >
-            Batch
-          </button>
-        </div>
-      </div>
 
       <div className="paneBody" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {job.sentences.length === 0 ? (
-            <div className="muted">No sentences yet. Click Generate.</div>
+            <div className="muted">No sentences yet. Click Generate Sentences.</div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {groupBy === "batch"
@@ -364,6 +302,24 @@ export function GenerationsPane(props: {
             </div>
           )}
         </div>
+      </div>
+      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, padding: "12px", fontSize: 14 }}>
+        <button
+          className="btn secondary"
+          onClick={onToggleAllExports}
+          disabled={busy || !hasSentences}
+          style={{ padding: "4px 8px" }}
+        >
+          {allExportsEnabled ? "Uncheck All Exports" : "Check All Exports"}
+        </button>
+        <button
+          className="btn secondary"
+          onClick={onClear}
+          disabled={busy || !hasSentences}
+          style={{ padding: "4px 8px" }}
+        >
+          Clear All
+        </button>
       </div>
     </div>
   );

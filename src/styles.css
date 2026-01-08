@@ -102,8 +102,16 @@ body {
   align-items: center;
 }
 
-.input, .textarea, .select {
+.input, .select {
   width: 100%;
+  background: #0f1115;
+  color: #e8eaf0;
+  border: 1px solid #2a2f41;
+  border-radius: 10px;
+  padding: 8px 10px;
+  outline: none;
+}
+.textarea {
   background: #0f1115;
   color: #e8eaf0;
   border: 1px solid #2a2f41;

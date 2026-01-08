@@ -7,9 +7,11 @@ import { applyTemplate } from "../lib/template";
 export function WordSetupPane(props: {
   job: Job;
   settings: AppSettings;
+  busy: boolean;
+  onGenerate: () => void;
   onChange: (job: Job) => void;
 }) {
-  const { job, settings, onChange } = props;
+  const { job, settings, busy, onGenerate, onChange } = props;
 
   function setDefinitionsRaw(raw: string) {
     const parsed = parseDefinitions(raw);
@@ -82,6 +84,7 @@ export function WordSetupPane(props: {
           value={job.definitionsRaw}
           onChange={(e) => setDefinitionsRaw(e.target.value)}
           placeholder={"1. to ...\n2. to ...\n3. ..."}
+          style={{ minHeight: 42, height: 100, resize: "vertical" }}
         />
 
         <div className="row" style={{ justifyContent: "space-between" }}>
@@ -99,7 +102,7 @@ export function WordSetupPane(props: {
                 style={{
                   border: "1px solid #242834",
                   borderRadius: 10,
-                  padding: "6px 10px",
+                  padding: 6,
                   background: "#0f1115",
                   display: "flex",
                   alignItems: "center",
@@ -108,7 +111,7 @@ export function WordSetupPane(props: {
               >
                 <div
                   style={{
-                    width: 32,
+                    paddingLeft: 10,
                     textAlign: "right",
                     opacity: 0.7,
                     fontWeight: 650,
@@ -151,15 +154,22 @@ export function WordSetupPane(props: {
                     setDefCount(d.index, Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1);
                   }}
                   style={{
-                    width: 64,
+                    maxWidth: 32,
                     textAlign: "center",
                     flexShrink: 0,
+                    padding: 2,
+                    borderRadius: 8,
                   }}
                 />
               </div>
             ))}
           </div>
         )}
+        <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 4 }}>
+          <button className="btn" onClick={onGenerate} disabled={busy}>
+            {busy ? "Generating…" : "Generate Sentences"}
+          </button>
+        </div>
       </div>
     </div>
   );
