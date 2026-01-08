@@ -3,6 +3,7 @@ export type Difficulty = "intro" | "beginner" | "intermediate" | "native-like" |
 export type DifficultyProfile = {
   // UI-facing:
   label: string;
+  shortLabel: string;
   shortHelp: string;
 
   // Prompt-facing:
@@ -21,6 +22,7 @@ export interface DefinitionSpec {
 export interface GenerationBatch {
   id: number;
   createdAt: number;
+  difficulty: Difficulty;
   definitions: DefinitionSpec[];
 }
 
@@ -39,6 +41,7 @@ export interface SentenceItem {
     index: number;
     text: string;
   };
+  difficulty?: Difficulty;
 }
 
 export type SentenceExportStatus = "new" | "exported" | "failed";
