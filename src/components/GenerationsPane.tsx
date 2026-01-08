@@ -105,6 +105,25 @@ export function GenerationsPane(props: {
     <div className="paneInner">
       <div className="paneHeader">
         <div className="paneTitle">Generations</div>
+        <div style={{ fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>
+          <div className="muted" style={{ fontSize: 14 }}>Group by</div>
+          <button
+            className={`btn secondary ${groupBy === "definition" ? "active" : ""}`}
+            onClick={() => setGroupBy("definition")}
+            disabled={busy}
+            style={{ padding: "2px 6px" }}
+          >
+            Definition
+          </button>
+          <button
+            className={`btn secondary ${groupBy === "batch" ? "active" : ""}`}
+            onClick={() => setGroupBy("batch")}
+            disabled={busy}
+            style={{ padding: "2px 6px" }}
+          >
+            Batch
+          </button>
+        </div>
       </div>
 
       {err && (
@@ -119,27 +138,6 @@ export function GenerationsPane(props: {
           <div className="muted" style={{ whiteSpace: "pre-wrap" }}>{notice}</div>
         </div>
       )}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 12px 0px 12px" }}>
-        <div className="muted" style={{ fontSize: 12 }}>Group by</div>
-        <div style={{ display: "flex", gap: 6 }}>
-          <button
-            className={`btn secondary ${groupBy === "definition" ? "active" : ""}`}
-            onClick={() => setGroupBy("definition")}
-            disabled={busy}
-            style={{ padding: "4px 8px", fontSize: 12 }}
-          >
-            Definition
-          </button>
-          <button
-            className={`btn secondary ${groupBy === "batch" ? "active" : ""}`}
-            onClick={() => setGroupBy("batch")}
-            disabled={busy}
-            style={{ padding: "4px 8px", fontSize: 12 }}
-          >
-            Batch
-          </button>
-        </div>
-      </div>
 
       <div className="paneBody" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -305,15 +303,21 @@ export function GenerationsPane(props: {
           )}
         </div>
       </div>
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, padding: "12px" }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, padding: "12px", fontSize: 14 }}>
         <button
           className="btn secondary"
           onClick={onToggleAllExports}
           disabled={busy || !hasSentences}
+          style={{ padding: "4px 8px" }}
         >
           {allExportsEnabled ? "Uncheck All Exports" : "Check All Exports"}
         </button>
-        <button className="btn secondary" onClick={onClear} disabled={busy || !hasSentences}>
+        <button
+          className="btn secondary"
+          onClick={onClear}
+          disabled={busy || !hasSentences}
+          style={{ padding: "4px 8px" }}
+        >
           Clear All
         </button>
       </div>
