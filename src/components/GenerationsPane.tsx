@@ -3,6 +3,7 @@ import type { AppSettings, Job, SentenceGeneration } from "../state/types";
 import { DIFFICULTY_PROFILES } from "../state/difficulty";
 import { touch } from "../state/store";
 import { generateSentences } from "../lib/openaiResponses";
+import { buildMockGenerations } from "../lib/mockGeneration";
 
 export function GenerationsPane(props: {
   job: Job;
@@ -12,14 +13,21 @@ export function GenerationsPane(props: {
   const { job, settings, onChange } = props;
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   async function onGenerate() {
     setErr(null);
+    setNotice(null);
     setBusy(true);
     try {
       onChange(touch({ ...job, status: "generating" }));
 
-      const results: SentenceGeneration[] = await generateSentences(job, settings);
+      const results: SentenceGeneration[] = settings.apiKey
+        ? await generateSentences(job, settings)
+        : buildMockGenerations(job, settings);
+      if (!settings.apiKey) {
+        setNotice("No API key set — using mock results.");
+      }
 
       onChange(
         touch({
@@ -61,6 +69,12 @@ export function GenerationsPane(props: {
           <div style={{ border: "1px solid #3a1f1f", background: "#1a0f0f", padding: 10, borderRadius: 10 }}>
             <div style={{ fontWeight: 700, marginBottom: 6 }}>Error</div>
             <div className="muted" style={{ whiteSpace: "pre-wrap" }}>{err}</div>
+          </div>
+        )}
+        {notice && (
+          <div style={{ border: "1px solid #2a2f3a", background: "#11151c", padding: 10, borderRadius: 10 }}>
+            <div style={{ fontWeight: 700, marginBottom: 6 }}>Info</div>
+            <div className="muted" style={{ whiteSpace: "pre-wrap" }}>{notice}</div>
           </div>
         )}
 

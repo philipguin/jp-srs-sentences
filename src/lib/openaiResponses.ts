@@ -163,7 +163,7 @@ export async function generateSentences(job: Job, settings: AppSettings): Promis
       difficulty: job.difficulty,
     });
 
-    var subIdx: number = indicesByDefIdx[it.defIndex] ?? 0;
+    const subIdx = indicesByDefIdx[it.defIndex] ?? 0;
     indicesByDefIdx[it.defIndex] = subIdx + 1;
 
     return {
