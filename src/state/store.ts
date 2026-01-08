@@ -1,6 +1,6 @@
 import type { Difficulty, Job } from "./types";
 
-function uid(): string {
+export function uid(): string {
   return Math.random().toString(16).slice(2) + Date.now().toString(16);
 }
 
@@ -14,6 +14,7 @@ export function createEmptyJob(opts?: { difficulty?: Difficulty }): Job {
     definitionsRaw: "",
     definitions: [],
     generations: [],
+    sentences: [],
     status: "draft",
     createdAt: now,
     updatedAt: now,
@@ -22,4 +23,17 @@ export function createEmptyJob(opts?: { difficulty?: Difficulty }): Job {
 
 export function touch(job: Job): Job {
   return { ...job, updatedAt: Date.now() };
+}
+
+export function normalizeJob(job: Job): Job {
+  return {
+    ...job,
+    definitions: job.definitions ?? [],
+    generations: job.generations ?? [],
+    sentences: (job.sentences ?? []).map((sentence) => ({
+      ...sentence,
+      exportEnabled: sentence.exportEnabled ?? true,
+      exportStatus: sentence.exportStatus ?? "new",
+    })),
+  };
 }

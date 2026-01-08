@@ -4,7 +4,7 @@ import { WordListPane } from "./components/WordListPane";
 import { WordSetupPane } from "./components/WordSetupPane";
 import { GenerationsPane } from "./components/GenerationsPane";
 import { SettingsModal } from "./components/SettingsModal";
-import { createEmptyJob } from "./state/store";
+import { createEmptyJob, normalizeJob } from "./state/store";
 import type { Job, AppSettings } from "./state/types";
 import { defaultSettings } from "./state/defaults";
 import { loadPersistedState, savePersistedState } from "./state/persistence";
@@ -17,7 +17,7 @@ function pickInitialState(): { jobs: Job[]; selectedJobId: string; settings: App
         ? persisted.selectedJobId
         : persisted.jobs[0].id;
 
-    return { jobs: persisted.jobs, selectedJobId: selected, settings: persisted.settings };
+    return { jobs: persisted.jobs.map(normalizeJob), selectedJobId: selected, settings: persisted.settings };
   }
   const settings = defaultSettings();
   const first = createEmptyJob({ difficulty: settings.defaultDifficulty });
