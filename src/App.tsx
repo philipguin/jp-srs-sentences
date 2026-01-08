@@ -10,16 +10,28 @@ import { defaultSettings } from "./state/defaults";
 import { loadPersistedState, savePersistedState } from "./state/persistence";
 import { generateSentences } from "./lib/openaiResponses";
 import { buildMockGenerations } from "./lib/mockGeneration";
+import { addNotes, fetchModelFieldNames } from "./lib/ankiConnect";
+import { buildAnkiFieldPayload, buildAnkiTags } from "./lib/ankiExport";
 
 function pickInitialState(): { jobs: Job[]; selectedJobId: string; settings: AppSettings } {
   const persisted = loadPersistedState();
   if (persisted && persisted.jobs.length > 0) {
+    const defaults = defaultSettings();
     const selected =
       persisted.selectedJobId && persisted.jobs.some((j) => j.id === persisted.selectedJobId)
         ? persisted.selectedJobId
         : persisted.jobs[0].id;
 
-    return { jobs: persisted.jobs.map(normalizeJob), selectedJobId: selected, settings: persisted.settings };
+    const settings: AppSettings = {
+      ...defaults,
+      ...persisted.settings,
+      ankiFieldMappings: {
+        ...defaults.ankiFieldMappings,
+        ...persisted.settings.ankiFieldMappings,
+      },
+    };
+
+    return { jobs: persisted.jobs.map(normalizeJob), selectedJobId: selected, settings };
   }
   const settings = defaultSettings();
   const first = createEmptyJob({ difficulty: settings.defaultDifficulty });
@@ -61,6 +73,7 @@ export default function App() {
   const [settings, setSettings] = useState<AppSettings>(initial.settings);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [generationBusy, setGenerationBusy] = useState(false);
+  const [exportBusy, setExportBusy] = useState(false);
   const [generationErr, setGenerationErr] = useState<string | null>(null);
   const [generationNotice, setGenerationNotice] = useState<string | null>(null);
 
@@ -162,13 +175,96 @@ export default function App() {
     setGenerationNotice(null);
   }
 
+  async function onExport() {
+    setGenerationErr(null);
+    setGenerationNotice(null);
+
+    if (!settings.ankiDeckName || !settings.ankiModelName) {
+      setGenerationErr("Missing deck or note type (Settings → AnkiConnect).");
+      return;
+    }
+
+    const exportTargets = jobs.flatMap((job) =>
+      job.sentences
+        .filter((sentence) => sentence.exportEnabled)
+        .map((sentence) => ({ job, sentence }))
+    );
+
+    if (exportTargets.length === 0) {
+      setGenerationErr("No sentences selected for export. Use the Export checkbox on sentences first.");
+      return;
+    }
+
+    setExportBusy(true);
+    try {
+      const fieldNames = await fetchModelFieldNames(settings.ankiModelName);
+      if (fieldNames.length === 0) {
+        setGenerationErr("Selected note type has no fields. Check Settings → AnkiConnect.");
+        return;
+      }
+
+      const fieldMapping = settings.ankiFieldMappings[settings.ankiModelName] ?? {};
+      const notes = exportTargets.map(({ job, sentence }) => ({
+        deckName: settings.ankiDeckName,
+        modelName: settings.ankiModelName,
+        fields: buildAnkiFieldPayload(fieldNames, fieldMapping, job, sentence),
+        tags: buildAnkiTags(settings, job, sentence),
+      }));
+
+      const results = await addNotes(notes);
+      const updates = new Map<string, { status: "exported" | "failed"; enabled: boolean }>();
+      let successCount = 0;
+      let failureCount = 0;
+
+      results.forEach((result, index) => {
+        const { sentence } = exportTargets[index];
+        if (result) {
+          successCount += 1;
+          updates.set(sentence.id, { status: "exported", enabled: false });
+        } else {
+          failureCount += 1;
+          updates.set(sentence.id, { status: "failed", enabled: true });
+        }
+      });
+
+      setJobs((prev) =>
+        prev.map((job) => {
+          let touched = false;
+          const nextSentences = job.sentences.map((sentence) => {
+            const update = updates.get(sentence.id);
+            if (!update) return sentence;
+            touched = true;
+            return { ...sentence, exportStatus: update.status, exportEnabled: update.enabled };
+          });
+          return touched ? touch({ ...job, sentences: nextSentences }) : job;
+        })
+      );
+
+      if (failureCount > 0) {
+        setGenerationErr(`Exported ${successCount} sentences, but ${failureCount} failed. Check AnkiConnect or field mappings.`);
+      } else {
+        setGenerationNotice(`Success! Exported ${successCount} sentences to Anki.`);
+      }
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      setGenerationErr(`Could not export via AnkiConnect: ${message}`);
+    } finally {
+      setExportBusy(false);
+    }
+  }
+
   return (
     <div className="app">
       <header className="topbar">
         <div className="title">JP SRS Sentence Builder</div>
-        <button className="btn" onClick={() => setSettingsOpen(true)}>
-          Settings
-        </button>
+        <div className="row" style={{ gap: 8 }}>
+          <button className="btn secondary" onClick={onExport} disabled={exportBusy}>
+            {exportBusy ? "Exporting…" : "Export"}
+          </button>
+          <button className="btn" onClick={() => setSettingsOpen(true)}>
+            Settings
+          </button>
+        </div>
       </header>
 
       <main className="grid">
@@ -200,7 +296,7 @@ export default function App() {
           {selectedJob ? (
             <GenerationsPane
               job={selectedJob}
-              busy={generationBusy}
+              busy={generationBusy || exportBusy}
               err={generationErr}
               notice={generationNotice}
               onClearMessages={onClearMessages}

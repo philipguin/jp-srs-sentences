@@ -46,6 +46,8 @@ export interface SentenceItem {
 
 export type SentenceExportStatus = "new" | "exported" | "failed";
 
+export type AnkiFieldSource = "" | "word" | "meaning" | "sentenceJp" | "sentenceEn" | "difficulty" | "notes";
+
 export interface Job {
   id: string;
   word: string;
@@ -71,6 +73,12 @@ export interface AppSettings {
 
   defaultDifficulty: Difficulty;
   defaultCountPreset: string;
+
+  ankiDeckName: string;
+  ankiModelName: string;
+  ankiFieldMappings: Record<string, Record<string, AnkiFieldSource>>;
+  ankiTags: string;
+  ankiIncludeDifficultyTag: boolean;
 
   // We'll add prompt templates + AnkiConnect later.
 }
