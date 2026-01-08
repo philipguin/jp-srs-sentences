@@ -18,6 +18,12 @@ export interface DefinitionSpec {
   count: number;
 }
 
+export interface GenerationBatch {
+  id: number;
+  createdAt: number;
+  definitions: DefinitionSpec[];
+}
+
 export interface SentenceItem {
   id: string;
   jp: string;
@@ -28,6 +34,7 @@ export interface SentenceItem {
   exportEnabled: boolean;
   exportStatus: SentenceExportStatus;
   generationId?: string;
+  batchId?: number;
   definitionSnapshot?: {
     index: number;
     text: string;
@@ -44,6 +51,7 @@ export interface Job {
   definitionsRaw: string;
   definitions: DefinitionSpec[];
   generations: SentenceGeneration[];
+  generationBatches: GenerationBatch[];
   sentences: SentenceItem[];
   status: JobStatus;
   createdAt: number;
