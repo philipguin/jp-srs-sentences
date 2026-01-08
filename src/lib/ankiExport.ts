@@ -5,14 +5,18 @@ export function resolveSentenceFieldValue(source: AnkiFieldSource, job: Job, sen
   switch (source) {
     case "word":
       return job.word;
+    case "reading":
+      return job.reading ?? "";
     case "meaning":
       return sentence.definitionSnapshot?.text ?? "";
+    case "meaningNumber":
+      return sentence.definitionSnapshot?.index ?? "";
     case "sentenceJp":
       return sentence.jp;
     case "sentenceEn":
       return sentence.en;
     case "difficulty": {
-      const difficultyKey = sentence.difficulty ?? job.difficulty;
+      const difficultyKey = sentence.difficulty ?? "";
       const profile = DIFFICULTY_PROFILES[difficultyKey];
       return profile?.shortLabel ?? profile?.label ?? difficultyKey;
     }

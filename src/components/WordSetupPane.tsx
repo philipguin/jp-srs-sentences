@@ -133,10 +133,10 @@ export function WordSetupPane(props: {
                     "\n" +
                     applyTemplate(settings.notesTemplate, {
                       word: job.word,
-                      meaning: d.text,
-                      defIndex: d.index,
                       reading: job.reading,
                       difficulty: job.difficulty,
+                      defIndex: d.index,
+                      meaning: d.text,
                     })
                   }
                 >

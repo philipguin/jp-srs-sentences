@@ -6,7 +6,7 @@ export function defaultSettings(): AppSettings {
     rememberApiKey: false,
     model: "gpt-5-mini",
 
-    notesTemplate: "{word} here means '{meaning}'.",
+    notesTemplate: "{word} here means “{meaning}”.",
 
     defaultDifficulty: "beginner",
     defaultCountPreset: "1",

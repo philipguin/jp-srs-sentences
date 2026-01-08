@@ -4,6 +4,68 @@ import { DIFFICULTY_PROFILES } from "../state/difficulty";
 import { ANKI_FIELD_OPTIONS } from "../lib/ankiFields";
 import { fetchDeckNames, fetchModelFieldNames, fetchModelNames } from "../lib/ankiConnect";
 
+function SectionTitle(props: { children: React.ReactNode; right?: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "baseline",
+        justifyContent: "space-between",
+        gap: 10,
+        marginTop: 6,
+      }}
+    >
+      <div style={{ fontWeight: 650, opacity: 0.92 }}>{props.children}</div>
+      {props.right}
+    </div>
+  );
+}
+
+function Field(props: {
+  label: string;
+  help?: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+        <div style={{ fontSize: 13, opacity: 0.92, fontWeight: 600 }}>{props.label}</div>
+        {props.required ? (
+          <span className="badge" style={{ opacity: 0.85 }}>
+            required
+          </span>
+        ) : null}
+      </div>
+      {props.help ? <div className="small">{props.help}</div> : null}
+      {props.children}
+    </div>
+  );
+}
+
+function Callout(props: {
+  tone?: "danger" | "warn" | "info";
+  title?: string;
+  children: React.ReactNode;
+}) {
+  const tone = props.tone ?? "info";
+  const styles =
+    tone === "danger"
+      ? { border: "1px solid #3a1f1f", background: "#1a0f0f" }
+      : tone === "warn"
+        ? { border: "1px solid #3a3320", background: "#14120a" }
+        : { border: "1px solid #242834", background: "#0f1115" };
+
+  return (
+    <div style={{ ...styles, padding: 10, borderRadius: 10 }}>
+      {props.title ? <div style={{ fontWeight: 700, marginBottom: 6 }}>{props.title}</div> : null}
+      <div className="muted" style={{ whiteSpace: "pre-wrap" }}>
+        {props.children}
+      </div>
+    </div>
+  );
+}
+
 export function SettingsModal(props: {
   settings: AppSettings;
   onChange: (next: AppSettings) => void;
@@ -37,14 +99,10 @@ export function SettingsModal(props: {
         const message = e instanceof Error ? e.message : String(e);
         setAnkiError(message);
       } finally {
-        if (!cancelled) {
-          setAnkiLoading(false);
-        }
+        if (!cancelled) setAnkiLoading(false);
       }
     }
-
     load();
-
     return () => {
       cancelled = true;
     };
@@ -70,14 +128,10 @@ export function SettingsModal(props: {
         setAnkiFieldsError(message);
         setAnkiFields([]);
       } finally {
-        if (!cancelled) {
-          setAnkiFieldsLoading(false);
-        }
+        if (!cancelled) setAnkiFieldsLoading(false);
       }
     }
-
     loadFields();
-
     return () => {
       cancelled = true;
     };
@@ -88,17 +142,9 @@ export function SettingsModal(props: {
     return settings.ankiFieldMappings[settings.ankiModelName] ?? {};
   }, [settings.ankiFieldMappings, settings.ankiModelName]);
 
-  const missingDeck = settings.ankiDeckName && ankiDecks.length > 0 && !ankiDecks.includes(settings.ankiDeckName);
-  const missingModel = settings.ankiModelName && ankiModels.length > 0 && !ankiModels.includes(settings.ankiModelName);
-  const hasJpField = Object.values(currentFieldMapping).includes("sentenceJp");
-  const hasEnField = Object.values(currentFieldMapping).includes("sentenceEn");
-
   function updateFieldMapping(fieldName: string, value: AnkiFieldSource) {
     if (!settings.ankiModelName) return;
-    const nextModelMapping = {
-      ...currentFieldMapping,
-      [fieldName]: value,
-    };
+    const nextModelMapping = { ...currentFieldMapping, [fieldName]: value };
     patch({
       ankiFieldMappings: {
         ...settings.ankiFieldMappings,
@@ -115,6 +161,15 @@ export function SettingsModal(props: {
   const deckOptions = ensureOption(ankiDecks, settings.ankiDeckName);
   const modelOptions = ensureOption(ankiModels, settings.ankiModelName);
 
+  const missingDeck = settings.ankiDeckName && ankiDecks.length > 0 && !ankiDecks.includes(settings.ankiDeckName);
+  const missingModel = settings.ankiModelName && ankiModels.length > 0 && !ankiModels.includes(settings.ankiModelName);
+  const hasJpField = Object.values(currentFieldMapping).includes("sentenceJp");
+  const hasEnField = Object.values(currentFieldMapping).includes("sentenceEn");
+
+  const ankiConfigured = !!settings.ankiDeckName || !!settings.ankiModelName;
+  const ankiHasProblem = !!ankiError || !!ankiFieldsError || missingDeck || missingModel;
+  const ankiDefaultOpen = ankiConfigured || ankiHasProblem;
+
   return (
     <div
       style={{
@@ -125,57 +180,92 @@ export function SettingsModal(props: {
         alignItems: "center",
         justifyContent: "center",
         padding: 16,
+        overflow: "hidden",
       }}
       onClick={onClose}
     >
       <div
         className="pane"
-        style={{ width: 760, maxWidth: "100%", overflow: "hidden" }}
+        style={{
+          width: 760,
+          maxWidth: "100%",
+          maxHeight: "calc(100vh - 32px)",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="paneHeader">
+        <div className="paneHeader" style={{ flex: "0 0 auto" }}>
           <div className="paneTitle">Settings</div>
-          <button className="btn danger" onClick={onClose}>
+          <button className="btn danger" onClick={onClose} aria-label="Close settings">
             ×
           </button>
         </div>
 
-        <div className="paneBody" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <div className="muted">LLM</div>
+        <div
+          className="paneBody"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 14,
+            flex: "1 1 auto",
+            overflowY: "auto",
+            minHeight: 0,
+            paddingRight: 4,
+          }}
+        >
+          <SectionTitle>LLM</SectionTitle>
 
-          <div className="row">
+          <Field
+            label="Model"
+            required
+            help="OpenAI model ID your app will call."
+          >
             <input
               className="input"
-              placeholder="Model (e.g. gpt-4.1-mini)"
               value={settings.model}
               onChange={(e) => patch({ model: e.target.value })}
+              placeholder="gpt-5-mini, gpt-5.2, etc."
             />
-          </div>
+          </Field>
 
-          <div className="row" style={{ gap: 10 }}>
+          <Field
+            label="API key"
+            help="Optional if you proxy requests; required if the browser calls the API directly."
+          >
             <input
               className="input"
-              placeholder="API Key (optional)"
               value={settings.apiKey}
               onChange={(e) => patch({ apiKey: e.target.value })}
               type="password"
+              placeholder="sk-…"
+              autoComplete="off"
             />
-          </div>
+          </Field>
 
-          <label className="row" style={{ gap: 10, cursor: "pointer" }}>
+          <label className="row" style={{ gap: 10, cursor: "pointer", alignItems: "flex-start" }}>
             <input
               type="checkbox"
               checked={settings.rememberApiKey}
               onChange={(e) => patch({ rememberApiKey: e.target.checked })}
+              style={{ marginTop: 2 }}
             />
-            <span className="muted">Remember API key in localStorage</span>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.92 }}>Remember API key</div>
+              <div className="small">Stores the key in localStorage on this device.</div>
+            </div>
           </label>
 
-          <div className="muted" style={{ marginTop: 6 }}>
-            Defaults
-          </div>
+          {!settings.rememberApiKey && settings.apiKey.length > 0 ? (
+            <Callout tone="warn" title="Heads up">
+              API key will not be saved; it will clear on refresh unless you enable “Remember”.
+            </Callout>
+          ) : null}
 
-          <div className="row">
+          <SectionTitle>Defaults</SectionTitle>
+
+          <Field label="Default difficulty" help="Used when creating new cards / prompts.">
             <select
               className="select"
               value={settings.defaultDifficulty}
@@ -187,151 +277,230 @@ export function SettingsModal(props: {
                 </option>
               ))}
             </select>
-          </div>
+          </Field>
 
-          <div className="row">
+          <Field label="Default sentence counts" help="Your preset string (e.g. 1/2/3).">
             <input
               className="input"
-              placeholder="Default count preset (e.g. 1/2/3)"
               value={settings.defaultCountPreset}
               onChange={(e) => patch({ defaultCountPreset: e.target.value })}
+              placeholder="1/2/3"
             />
-          </div>
+          </Field>
 
-          <div className="muted" style={{ marginTop: 6 }}>
-            Notes template (supports {"{word}"} and {"{meaning}"})
-          </div>
-
-          <div className="row">
-            <input
-              className="input"
-              value={settings.notesTemplate}
-              onChange={(e) => patch({ notesTemplate: e.target.value })}
-            />
-          </div>
-
-          <div className="muted" style={{ marginTop: 6 }}>
-            AnkiConnect (AC)
-          </div>
-
-          {ankiError && (
-            <div style={{ border: "1px solid #3a1f1f", background: "#1a0f0f", padding: 10, borderRadius: 10 }}>
-              <div style={{ fontWeight: 700, marginBottom: 6 }}>AnkiConnect Error</div>
-              <div className="muted" style={{ whiteSpace: "pre-wrap" }}>{ankiError}</div>
-            </div>
-          )}
-
-          <div className="row">
-            <select
-              className="select"
-              value={settings.ankiDeckName}
-              onChange={(e) => patch({ ankiDeckName: e.target.value })}
+          {/* AnkiConnect collapsible */}
+          <details open={ankiDefaultOpen} style={{ marginTop: 4 }}>
+            <summary
+              style={{
+                cursor: "pointer",
+                listStyle: "none",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 10,
+                padding: "10px 10px",
+                border: "1px solid #242834",
+                borderRadius: 12,
+                background: "#0f1115",
+                userSelect: "none",
+              }}
             >
-              <option value="">(Select deck)</option>
-              {deckOptions.map((deck) => (
-                <option key={deck} value={deck}>
-                  {deck}
-                </option>
-              ))}
-            </select>
-          </div>
-          {missingDeck && (
-            <div className="muted" style={{ color: "#f2a2a2" }}>
-              Selected deck isn’t available in Anki. Re-select a deck or fix it in Anki.
-            </div>
-          )}
-
-          <div className="row">
-            <select
-              className="select"
-              value={settings.ankiModelName}
-              onChange={(e) => patch({ ankiModelName: e.target.value })}
-            >
-              <option value="">(Select note type)</option>
-              {modelOptions.map((model) => (
-                <option key={model} value={model}>
-                  {model}
-                </option>
-              ))}
-            </select>
-          </div>
-          {missingModel && (
-            <div className="muted" style={{ color: "#f2a2a2" }}>
-              Selected note type isn’t available in Anki. Re-select a note type or fix it in Anki.
-            </div>
-          )}
-
-          {ankiFieldsError && (
-            <div className="muted" style={{ color: "#f2a2a2" }}>
-              Failed to load fields for this note type: {ankiFieldsError}
-            </div>
-          )}
-
-          {settings.ankiModelName && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <div className="muted">
-                Field mapping {ankiFieldsLoading ? "· loading…" : ""}
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <div style={{ fontWeight: 650, opacity: 0.92 }}>AnkiConnect</div>
+                <div className="small">
+                  Deck + note type + field mapping for exports.
+                </div>
               </div>
-              {ankiFields.length === 0 && !ankiFieldsLoading ? (
-                <div className="muted">No fields loaded yet.</div>
-              ) : (
-                ankiFields.map((field) => (
-                  <div key={field} className="row">
-                    <div style={{ width: 180 }}>{field}</div>
-                    <select
-                      className="select"
-                      value={currentFieldMapping[field] ?? ""}
-                      onChange={(e) => updateFieldMapping(field, e.target.value as AnkiFieldSource)}
-                    >
-                      {ANKI_FIELD_OPTIONS.map((option) => (
-                        <option key={`${field}-${option.value}`} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                {ankiLoading ? <span className="badge">loading…</span> : null}
+                {ankiHasProblem ? <span className="badge" style={{ borderColor: "#3a1f1f" }}>needs attention</span> : null}
+                {ankiConfigured && !ankiHasProblem ? <span className="badge">configured</span> : null}
+              </div>
+            </summary>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 12 }}>
+              {ankiError ? (
+                <Callout tone="danger" title="AnkiConnect Error">
+                  {ankiError}
+                </Callout>
+              ) : null}
+
+              <Field label="Deck" required help="Where new notes will be added.">
+                <select
+                  className="select"
+                  value={settings.ankiDeckName}
+                  onChange={(e) => patch({ ankiDeckName: e.target.value })}
+                >
+                  <option value="">Select a deck…</option>
+                  {deckOptions.map((deck) => (
+                    <option key={deck} value={deck}>
+                      {deck}
+                    </option>
+                  ))}
+                </select>
+                {missingDeck ? (
+                  <div className="small" style={{ color: "#f2a2a2", marginTop: 6 }}>
+                    Selected deck isn’t available in Anki. Re-select a deck or fix it in Anki.
                   </div>
-                ))
-              )}
-              {!hasJpField || !hasEnField ? (
-                <div className="muted" style={{ color: "#f2d48a" }}>
-                  Warning: JP and EN sentences should usually be mapped to avoid blank cards.
+                ) : null}
+              </Field>
+
+              <Field label="Note type" required help="Anki note type used for the exported notes.">
+                <select
+                  className="select"
+                  value={settings.ankiModelName}
+                  onChange={(e) => patch({ ankiModelName: e.target.value })}
+                >
+                  <option value="">Select a note type…</option>
+                  {modelOptions.map((model) => (
+                    <option key={model} value={model}>
+                      {model}
+                    </option>
+                  ))}
+                </select>
+                {missingModel ? (
+                  <div className="small" style={{ color: "#f2a2a2", marginTop: 6 }}>
+                    Selected note type isn’t available in Anki. Re-select a note type or fix it in Anki.
+                  </div>
+                ) : null}
+              </Field>
+
+              {ankiFieldsError ? (
+                <Callout tone="danger" title="Failed to load fields">
+                  {ankiFieldsError}
+                </Callout>
+              ) : null}
+
+              {settings.ankiModelName ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <SectionTitle
+                    right={
+                      <span className="small" style={{ opacity: 0.75 }}>
+                        {ankiFieldsLoading ? "Loading fields…" : ankiFields.length ? `${ankiFields.length} fields` : ""}
+                      </span>
+                    }
+                  >
+                    Field mapping
+                  </SectionTitle>
+
+                  <div className="small">
+                    Map Anki fields (left) to your app’s data (right).
+                  </div>
+
+                  {ankiFields.length === 0 && !ankiFieldsLoading ? (
+                    <div className="muted">No fields loaded yet.</div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                      {/* header row */}
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 10,
+                          padding: "6px 8px",
+                          border: "1px solid #242834",
+                          borderRadius: 10,
+                          background: "#121521",
+                        }}
+                      >
+                        <div className="small" style={{ width: 180, fontWeight: 700, opacity: 0.85 }}>
+                          Anki field
+                        </div>
+                        <div className="small" style={{ flex: 1, fontWeight: 700, opacity: 0.85 }}>
+                          Maps to
+                        </div>
+                      </div>
+
+                      <div style={{
+                          border: "1px solid #242834",
+                          borderRadius: 10,
+                          background: "#0f111c",
+                      }}>
+                        {ankiFields.map((field) => (
+                          <div
+                            key={field}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 10,
+                              padding: "4px 8px",
+                            }}
+                          >
+                            <div style={{ width: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {field}
+                            </div>
+                            <select
+                              className="select"
+                              value={currentFieldMapping[field] ?? ""}
+                              onChange={(e) => updateFieldMapping(field, e.target.value as AnkiFieldSource)}
+                              style={{
+                                padding: "4px 0px 4px 0px",
+                                color: currentFieldMapping[field] ? "" : "#777"
+                              }}
+                            >
+                              {ANKI_FIELD_OPTIONS.map((option) => (
+                                <option key={`${field}-${option.value}`} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {!hasJpField || !hasEnField ? (
+                    <Callout tone="warn" title="Recommended mapping">
+                      Map both JP and EN sentence sources to avoid blank cards.
+                    </Callout>
+                  ) : null}
                 </div>
               ) : null}
+
+              <SectionTitle>Export formatting</SectionTitle>
+
+              <Field
+                label="Notes template"
+                help='Supported macros: {word}, {reading}, {difficulty}, {meaning}, {meaningNumber}, {sentenceJp}, {sentenceEn}'
+              >
+                <input
+                  className="input"
+                  value={settings.notesTemplate}
+                  onChange={(e) => patch({ notesTemplate: e.target.value })}
+                  placeholder="{word} here means “{meaning}”."
+                />
+              </Field>
+
+              <Field label="Tags" help="Space-delimited. Will be added to exported notes.">
+                <input
+                  className="input"
+                  value={settings.ankiTags}
+                  onChange={(e) => patch({ ankiTags: e.target.value })}
+                  placeholder="japanese jpdb_sup"
+                />
+              </Field>
+
+              <label className="row" style={{ gap: 10, cursor: "pointer", alignItems: "flex-start" }}>
+                <input
+                  type="checkbox"
+                  checked={settings.ankiIncludeDifficultyTag}
+                  onChange={(e) => patch({ ankiIncludeDifficultyTag: e.target.checked })}
+                  style={{ marginTop: 2 }}
+                />
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.92 }}>Include difficulty tags</div>
+                  <div className="small">Adds tags like "difficulty-beginner" to exports.</div>
+                </div>
+              </label>
             </div>
-          )}
+          </details>
 
-          <div className="row">
-            <input
-              className="input"
-              placeholder="Tags (space-delimited, optional)"
-              value={settings.ankiTags}
-              onChange={(e) => patch({ ankiTags: e.target.value })}
-            />
-          </div>
-          <label className="row" style={{ gap: 10, cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={settings.ankiIncludeDifficultyTag}
-              onChange={(e) => patch({ ankiIncludeDifficultyTag: e.target.checked })}
-            />
-            <span className="muted">Include difficulty-* tags automatically</span>
-          </label>
-
-          {ankiLoading && (
-            <div className="muted">Loading decks and note types from AnkiConnect…</div>
-          )}
-
-          <div className="row" style={{ justifyContent: "flex-end" }}>
+          <div className="row" style={{ justifyContent: "flex-end", marginTop: 4 }}>
             <button className="btn secondary" onClick={onClose}>
               Close
             </button>
           </div>
-
-          {!settings.rememberApiKey && settings.apiKey.length > 0 && (
-            <div className="muted">
-              API key will NOT be saved; it will clear on refresh unless you enable “Remember”.
-            </div>
-          )}
         </div>
       </div>
     </div>
