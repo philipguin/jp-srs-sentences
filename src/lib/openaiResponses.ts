@@ -1,4 +1,4 @@
-import type { AppSettings, Job, SentenceGeneration, DifficultyProfile } from "../state/types";
+import type { AppSettings, Job, SentenceGeneration } from "../state/types";
 import { DIFFICULTY_PROFILES } from "../state/difficulty";
 import { applyTemplate } from "./template";
 

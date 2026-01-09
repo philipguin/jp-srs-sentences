@@ -1,7 +1,9 @@
+import type { Difficulty, DifficultyProfile } from "../state/types"
 
 export const DIFFICULTY_PROFILES: Record<Difficulty, DifficultyProfile> = {
   "intro": {
     label: "Intro Level",
+    shortLabel: "Intro Level",
     shortHelp: "Very short, very explicit sentences for first exposure.",
     maxJapaneseChars: 35,
     promptGuidelines: [
@@ -14,6 +16,7 @@ export const DIFFICULTY_PROFILES: Record<Difficulty, DifficultyProfile> = {
 
   "beginner": {
     label: "Beginner",
+    shortLabel: "Beginner",
     shortHelp: "Natural but simple sentences a learner can parse comfortably.",
     maxJapaneseChars: 55,
     promptGuidelines: [
@@ -26,6 +29,7 @@ export const DIFFICULTY_PROFILES: Record<Difficulty, DifficultyProfile> = {
 
   "intermediate": {
     label: "Intermediate",
+    shortLabel: "Intermediate",
     shortHelp: "Natural Japanese with clauses, ellipsis, and common idioms.",
     maxJapaneseChars: 80,
     promptGuidelines: [
@@ -38,6 +42,7 @@ export const DIFFICULTY_PROFILES: Record<Difficulty, DifficultyProfile> = {
 
   "native-like": {
     label: "Native-like",
+    shortLabel: "Native-like",
     shortHelp: "Fully natural Japanese, including cultural assumptions.",
     maxJapaneseChars: 110,
     promptGuidelines: [
@@ -49,6 +54,7 @@ export const DIFFICULTY_PROFILES: Record<Difficulty, DifficultyProfile> = {
 
   "written-narrative": {
     label: "Written Narrative",
+    shortLabel: "Written Narrative",
     shortHelp: "Written sentences similar to novel narration; denser than everyday speech.",
     maxJapaneseChars: 140,
     promptGuidelines: [

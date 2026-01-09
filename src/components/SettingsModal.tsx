@@ -173,8 +173,8 @@ export function SettingsModal(props: {
   const deckOptions = ensureOption(ankiDecks, settings.ankiDeckName);
   const modelOptions = ensureOption(ankiModels, settings.ankiModelName);
 
-  const missingDeck = settings.ankiDeckName && ankiDecks.length > 0 && !ankiDecks.includes(settings.ankiDeckName);
-  const missingModel = settings.ankiModelName && ankiModels.length > 0 && !ankiModels.includes(settings.ankiModelName);
+  const missingDeck = !!settings.ankiDeckName && ankiDecks.length > 0 && !ankiDecks.includes(settings.ankiDeckName);
+  const missingModel = !!settings.ankiModelName && ankiModels.length > 0 && !ankiModels.includes(settings.ankiModelName);
   const hasJpField = Object.values(currentFieldMapping).includes("sentenceJp");
   const hasEnField = Object.values(currentFieldMapping).includes("sentenceEn");
 

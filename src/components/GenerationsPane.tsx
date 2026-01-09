@@ -118,6 +118,11 @@ export function GenerationsPane(props: {
   }
 
   const groupedByBatch = useMemo(() => {
+    type BatchGroup = {
+      key: number;
+      batch?: Job["generationBatches"][number];
+      sentences: SentenceItem[];
+    };
     const grouped = new Map<number, SentenceItem[]>();
     for (const sentence of job.sentences) {
       const key = sentence.batchId ?? -1;
@@ -127,7 +132,7 @@ export function GenerationsPane(props: {
     }
 
     const ordered = [...job.generationBatches].sort((a, b) => b.id - a.id);
-    const groups = ordered
+    const groups: BatchGroup[] = ordered
       .map((batch) => ({
         key: batch.id,
         batch,
@@ -188,7 +193,7 @@ export function GenerationsPane(props: {
           ) : null}
           {furiganaAvailable ? (
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span class="muted" style={{ fontSize: 14, flexShrink: 0 }}>
+              <span className="muted" style={{ fontSize: 14, flexShrink: 0 }}>
                 Display
               </span>
               <select
@@ -210,7 +215,7 @@ export function GenerationsPane(props: {
             <select
               className="select"
               value={groupBy}
-              onChange={(e) => setGroupBy(e.target.value as string)}
+              onChange={(e) => setGroupBy(e.target.value as "definition" | "batch")}
               style={{ padding: "4px 8px" }}
             >
               <option value="definition">Definition</option>
@@ -242,8 +247,8 @@ export function GenerationsPane(props: {
               {groupBy === "batch"
                 ? groupedByBatch.map((group) => {
                     const batch = group.batch;
-                    const date = new Date(batch.createdAt);
-                    const difficulty = DIFFICULTY_PROFILES[batch.difficulty];
+                    const date = batch ? new Date(batch.createdAt) : null;
+                    const difficulty = batch ? DIFFICULTY_PROFILES[batch.difficulty] : null;
                     return (
                       <div key={group.key} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
@@ -252,7 +257,7 @@ export function GenerationsPane(props: {
                           </div>
                           {batch && (
                             <div className="muted" style={{ fontSize: 12 }}>
-                              {date.toLocaleString()} · {difficulty.shortLabel ?? difficulty.label}
+                              {date?.toLocaleString()} · {difficulty?.shortLabel ?? difficulty?.label}
                             </div>
                           )}
                         </div>
@@ -276,7 +281,7 @@ export function GenerationsPane(props: {
                                   onUpdateSentence={updateSentenceCache}
                                 />
                               </div>
-                              <div style={{ flexShrink: 0, whitespace: "nowrap", display: "flex", alignItems: "start", gap: 10 }}>
+                              <div style={{ flexShrink: 0, whiteSpace: "nowrap", display: "flex", alignItems: "start", gap: 10 }}>
                                 <div className="muted" style={{ fontSize: 12 }}>
                                   {sentence.definitionSnapshot && "D" + sentence.definitionSnapshot.index}
                                   {sentence.definitionSnapshot && sentence.exportStatus && " · "}
@@ -334,7 +339,7 @@ export function GenerationsPane(props: {
                           : "Definition"}
                       </div>
                       {group.sentences.map((sentence) => {
-                        const difficulty = DIFFICULTY_PROFILES[sentence.difficulty];
+                        const difficulty = sentence.difficulty ? DIFFICULTY_PROFILES[sentence.difficulty] : null;
                         return (
                           <div
                             key={sentence.id}
@@ -358,7 +363,7 @@ export function GenerationsPane(props: {
                               <div className="muted" style={{ fontSize: 12, flexShrink: 0, whiteSpace: "nowrap", display: "flex", alignItems: "start", gap: 10 }}>
                                 {sentence.batchId && "B" + sentence.batchId}
                                 {sentence.batchId && sentence.difficulty && " · "}
-                                {sentence.difficulty && (difficulty.shortLabel ?? difficulty.label)}
+                                {sentence.difficulty && (difficulty?.shortLabel ?? difficulty?.label)}
                                 {(sentence.batchId || sentence.difficulty) && sentence.exportStatus && " · "}
                                 {sentence.exportStatus === "new" && "New"}
                                 {sentence.exportStatus === "exported" && "Exported"}
