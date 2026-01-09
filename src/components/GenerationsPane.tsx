@@ -210,7 +210,7 @@ export function GenerationsPane(props: {
             <select
               className="select"
               value={groupBy}
-              onChange={(e) => setGroupBy(e.target.value as string)}
+              onChange={(e) => setGroupBy(e.target.value)}
               style={{ padding: "4px 8px" }}
             >
               <option value="definition">Definition</option>

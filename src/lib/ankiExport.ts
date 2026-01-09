@@ -69,9 +69,13 @@ export async function resolveSentenceFieldValue(
     case "sentenceEn":
       return { value: sentence.en };
     case "difficulty": {
-      const difficultyKey = sentence.difficulty ?? "";
-      const profile = DIFFICULTY_PROFILES[difficultyKey];
-      return { value: profile?.shortLabel ?? profile?.label ?? difficultyKey };
+      const difficultyKey = sentence.difficulty;
+      if (difficultyKey) {
+        const profile = DIFFICULTY_PROFILES[difficultyKey];
+        return { value: profile?.shortLabel ?? profile?.label ?? difficultyKey };
+      } else {
+        return { value: "" };
+      }
     }
     case "notes":
       return { value: sentence.notes };
