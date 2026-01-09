@@ -91,7 +91,7 @@ export function WordListPane(props: {
         <div className="paneTitle">Word List</div>
         <div className="row" style={{ gap: 8 }}>
           {settings.enableFurigana && furiganaStatus === "loading" ? (
-            <span className="badge">loading…</span>
+            <span className="badge">Loading…</span>
           ) : null}
           <select
             className="select"
@@ -103,7 +103,7 @@ export function WordListPane(props: {
             {furiganaAvailable ? <option value="furigana">With furigana</option> : null}
             <option value="kana">As kana</option>
           </select>
-          <button className="btn secondary" onClick={onNewJob}>
+          <button className="btn secondary" onClick={onNewJob} style={{ flexShrink: 0, padding: "2px 8px" }}>
             + New
           </button>
         </div>

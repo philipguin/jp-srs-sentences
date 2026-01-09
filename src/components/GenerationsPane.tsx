@@ -179,41 +179,43 @@ export function GenerationsPane(props: {
   return (
     <div className="paneInner">
       <div className="paneHeader">
-        <div className="paneTitle">Generations</div>
-        <div style={{ fontSize: 14, display: "flex", alignItems: "center", gap: 10 }}>
+        <div className="paneTitle">
+          Generations
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {settings.enableFurigana && furiganaStatus === "loading" ? (
-            <span className="badge">loading…</span>
+            <span className="badge">Loading…</span>
           ) : null}
           {furiganaAvailable ? (
-            <select
-              className="select"
-              value={displayMode}
-              onChange={(e) => setDisplayMode(e.target.value as DisplayMode)}
-              style={{ padding: "4px 8px" }}
-            >
-              <option value="natural">Naturally</option>
-              <option value="furigana">With furigana</option>
-              <option value="kana">As kana</option>
-            </select>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span class="muted" style={{ fontSize: 14, flexShrink: 0 }}>
+                Display
+              </span>
+              <select
+                className="select"
+                value={displayMode}
+                onChange={(e) => setDisplayMode(e.target.value as DisplayMode)}
+                style={{ padding: "4px 8px" }}
+              >
+                <option value="natural">Naturally</option>
+                <option value="furigana">With furigana</option>
+                <option value="kana">As kana</option>
+              </select>
+            </div>
           ) : null}
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <div className="muted" style={{ fontSize: 14 }}>Group by</div>
-            <button
-              className={`btn secondary ${groupBy === "definition" ? "active" : ""}`}
-              onClick={() => setGroupBy("definition")}
-              disabled={busy}
-              style={{ padding: "2px 6px" }}
+            <span className="muted" style={{ fontSize: 14, flexShrink: 0 }}>
+              Group by
+            </span>
+            <select
+              className="select"
+              value={groupBy}
+              onChange={(e) => setGroupBy(e.target.value as string)}
+              style={{ padding: "4px 8px" }}
             >
-              Definition
-            </button>
-            <button
-              className={`btn secondary ${groupBy === "batch" ? "active" : ""}`}
-              onClick={() => setGroupBy("batch")}
-              disabled={busy}
-              style={{ padding: "2px 6px" }}
-            >
-              Batch
-            </button>
+              <option value="definition">Definition</option>
+              <option value="batch">Batch</option>
+            </select>
           </div>
         </div>
       </div>

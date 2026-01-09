@@ -325,11 +325,11 @@ export default function App() {
       <header className="topbar">
         <div className="title">JP SRS Sentence Builder</div>
         <div className="row" style={{ gap: 8 }}>
-          <button className="btn secondary" onClick={onExport} disabled={exportBusy}>
-            {exportBusy ? "Exporting…" : "Export"}
-          </button>
-          <button className="btn" onClick={() => setSettingsOpen(true)}>
+          <button className="btn secondary" onClick={() => setSettingsOpen(true)}>
             Settings
+          </button>
+          <button className="btn" onClick={onExport} disabled={exportBusy}>
+            {exportBusy ? "Exporting…" : "Export"}
           </button>
         </div>
       </header>
