@@ -118,8 +118,11 @@ export default function App() {
       .then(() => {
         if (!cancelled) setFuriganaStatus("ready");
       })
-      .catch(() => {
-        if (!cancelled) setFuriganaStatus("error");
+      .catch((e) => {
+        if (!cancelled) {
+          console.error(e);
+          setFuriganaStatus("error");
+        }
       });
 
     return () => {

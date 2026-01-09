@@ -35,8 +35,7 @@ export async function initFurigana(): Promise<void> {
 
   initPromise = (async () => {
     const instance = new Kuroshiro();
-    const baseUrl = import.meta.env.BASE_URL || "/";
-    const dictPath = new URL("kuromoji-dict/", baseUrl).toString();
+    const dictPath = `${import.meta.env.BASE_URL}_kuromoji_dict/`;
     const analyzer = new KuromojiAnalyzer({ dictPath });
     await instance.init(analyzer);
     kuroshiro = instance;
