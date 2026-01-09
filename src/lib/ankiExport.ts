@@ -48,7 +48,7 @@ export async function resolveSentenceFieldValue(
     case "meaning":
       return { value: sentence.definitionSnapshot?.text ?? "" };
     case "meaningNumber":
-      return { value: sentence.definitionSnapshot?.index ?? "" };
+      return { value: sentence.definitionSnapshot?.index?.toString() ?? "" };
     case "sentenceJp":
       return { value: sentence.jp };
     case "sentenceJpKana": {
