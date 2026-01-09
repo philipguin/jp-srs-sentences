@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Job, Difficulty, DifficultyProfile, DefinitionSpec, AppSettings } from "../state/types";
 import { DIFFICULTY_PROFILES } from "../state/difficulty";
 import { touch } from "../state/store";
@@ -12,6 +13,7 @@ export function WordSetupPane(props: {
   onChange: (job: Job) => void;
 }) {
   const { job, settings, busy, onGenerate, onChange } = props;
+  const [definitionsLoading, setDefinitionsLoading] = useState(false);
 
   function setDefinitionsRaw(raw: string) {
     const parsed = parseDefinitions(raw);
@@ -34,6 +36,36 @@ export function WordSetupPane(props: {
       d.index === defIndex ? { ...d, count } : d
     );
     onChange(touch({ ...job, definitions: next }));
+  }
+
+  async function populateFromJisho() {
+    const keyword = job.word.trim();
+    if (!keyword) return;
+
+    setDefinitionsLoading(true);
+    try {
+      const url = new URL("https://jisho.org/api/v1/search/words");
+      url.searchParams.set("keyword", keyword);
+      const response = await fetch(url.toString());
+
+      if (!response.ok) {
+        throw new Error(`Jisho request failed (${response.status})`);
+      }
+
+      const payload = (await response.json()) as {
+        data?: { senses?: { english_definitions?: string[] }[] }[];
+      };
+      const senses = payload.data?.[0]?.senses ?? [];
+      const lines = senses
+        .map((sense) => (sense.english_definitions ?? [])[0]?.trim() ?? "")
+        .filter(Boolean);
+
+      setDefinitionsRaw(lines.join("\n"));
+    } catch (error) {
+      console.error("Failed to load definitions from Jisho.", error);
+    } finally {
+      setDefinitionsLoading(false);
+    }
   }
 
   return (
@@ -78,7 +110,20 @@ export function WordSetupPane(props: {
           </select>
         </div>
 
-        <div className="muted">Definitions (paste numbered lines like “1. …” “2. …”)</div>
+        <div className="row" style={{ justifyContent: "space-between" }}>
+          <div className="muted">Definitions (paste numbered lines like “1. …” “2. …”)</div>
+          <button
+            className="btn secondary"
+            type="button"
+            onClick={populateFromJisho}
+            disabled={definitionsLoading || job.word.trim().length === 0}
+          >
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              {definitionsLoading ? <span className="spinner" /> : null}
+              {definitionsLoading ? "Fetching…" : "Fetch from Jisho"}
+            </span>
+          </button>
+        </div>
         <textarea
           className="textarea"
           value={job.definitionsRaw}
