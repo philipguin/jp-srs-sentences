@@ -81,8 +81,9 @@ export function SettingsModal(props: {
   settings: AppSettings;
   onChange: (next: AppSettings) => void;
   onClose: () => void;
+  furiganaStatus: "idle" | "loading" | "ready" | "error";
 }) {
-  const { settings, onChange, onClose } = props;
+  const { settings, onChange, onClose, furiganaStatus } = props;
   const [ankiDecks, setAnkiDecks] = useState<string[]>([]);
   const [ankiModels, setAnkiModels] = useState<string[]>([]);
   const [ankiFields, setAnkiFields] = useState<string[]>([]);
@@ -184,6 +185,21 @@ export function SettingsModal(props: {
     () => validateTemplateMacros(settings.notesTemplate, NOTES_TEMPLATE_ALLOWLIST),
     [settings.notesTemplate],
   );
+  const furiganaHelpText = useMemo(() => {
+    if (!settings.enableFurigana) {
+      return "Optional. First enable may take a moment to load language data.";
+    }
+    if (furiganaStatus === "loading") {
+      return "Loading furigana engine…";
+    }
+    if (furiganaStatus === "ready") {
+      return "Ready";
+    }
+    if (furiganaStatus === "error") {
+      return "Couldn’t load furigana engine (falling back to plain text).";
+    }
+    return "Optional. First enable may take a moment to load language data.";
+  }, [furiganaStatus, settings.enableFurigana]);
 
   return (
     <div
@@ -302,6 +318,34 @@ export function SettingsModal(props: {
               placeholder="1/2/3"
             />
           </Field>
+
+          <SectionTitle>Furigana</SectionTitle>
+
+          <label className="row" style={{ gap: 10, cursor: "pointer", alignItems: "flex-start" }}>
+            <input
+              type="checkbox"
+              checked={settings.enableFurigana}
+              onChange={(e) => patch({ enableFurigana: e.target.checked })}
+              style={{ marginTop: 2 }}
+            />
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.92 }}>Furigana</div>
+              <div className="small">{furiganaHelpText}</div>
+            </div>
+          </label>
+
+          {settings.enableFurigana ? (
+            <Field label="Kana output" help="Choose the kana style used for readings.">
+              <select
+                className="select"
+                value={settings.furiganaKanaMode}
+                onChange={(e) => patch({ furiganaKanaMode: e.target.value as AppSettings["furiganaKanaMode"] })}
+              >
+                <option value="hiragana">Hiragana</option>
+                <option value="katakana">Katakana</option>
+              </select>
+            </Field>
+          ) : null}
 
           {/* AnkiConnect collapsible */}
           <details open={ankiDefaultOpen} style={{ marginTop: 4 }}>

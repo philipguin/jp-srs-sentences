@@ -16,5 +16,8 @@ export function defaultSettings(): AppSettings {
     ankiFieldMappings: {},
     ankiTags: "",
     ankiIncludeDifficultyTag: false,
+
+    enableFurigana: false,
+    furiganaKanaMode: "hiragana",
   };
 }

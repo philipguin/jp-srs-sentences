@@ -12,6 +12,7 @@ import { generateSentences } from "./lib/openaiResponses";
 import { buildMockGenerations } from "./lib/mockGeneration";
 import { addNotes, fetchModelFieldNames } from "./lib/ankiConnect";
 import { buildAnkiFieldPayload, buildAnkiTags } from "./lib/ankiExport";
+import { initFurigana, isFuriganaReady } from "./lib/furigana";
 
 function pickInitialState(): { jobs: Job[]; selectedJobId: string; settings: AppSettings } {
   const persisted = loadPersistedState();
@@ -76,6 +77,10 @@ export default function App() {
   const [exportBusy, setExportBusy] = useState(false);
   const [generationErr, setGenerationErr] = useState<string | null>(null);
   const [generationNotice, setGenerationNotice] = useState<string | null>(null);
+  const [furiganaStatus, setFuriganaStatus] = useState<"idle" | "loading" | "ready" | "error">(
+    isFuriganaReady() ? "ready" : "idle",
+  );
+  const furiganaAvailable = settings.enableFurigana && furiganaStatus === "ready";
 
   const selectedJob = useMemo(
     () => jobs.find((j) => j.id === selectedJobId) ?? jobs[0],
@@ -95,6 +100,35 @@ export default function App() {
       settings: toSave,
     });
   }, [jobs, selectedJobId, settings]);
+
+  useEffect(() => {
+    if (!settings.enableFurigana) {
+      setFuriganaStatus(isFuriganaReady() ? "ready" : "idle");
+      return;
+    }
+
+    if (isFuriganaReady()) {
+      setFuriganaStatus("ready");
+      return;
+    }
+
+    let cancelled = false;
+    setFuriganaStatus("loading");
+    initFurigana()
+      .then(() => {
+        if (!cancelled) setFuriganaStatus("ready");
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          console.error(e);
+          setFuriganaStatus("error");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [settings.enableFurigana]);
 
 
   function onNewJob() {
@@ -204,12 +238,33 @@ export default function App() {
       }
 
       const fieldMapping = settings.ankiFieldMappings[settings.ankiModelName] ?? {};
-      const notes = exportTargets.map(({ job, sentence }) => ({
-        deckName: settings.ankiDeckName,
-        modelName: settings.ankiModelName,
-        fields: buildAnkiFieldPayload(fieldNames, fieldMapping, job, sentence),
-        tags: buildAnkiTags(settings, job, sentence),
-      }));
+      const jobCacheUpdates = new Map<string, Job["furiganaCache"]>();
+      const sentenceCacheUpdates = new Map<string, SentenceItem["furiganaCache"]>();
+
+      const notes = await Promise.all(
+        exportTargets.map(async ({ job, sentence }) => {
+          const payload = await buildAnkiFieldPayload(
+            fieldNames,
+            fieldMapping,
+            job,
+            sentence,
+            settings,
+            furiganaAvailable,
+          );
+          if (payload.jobCache && payload.jobCache !== job.furiganaCache) {
+            jobCacheUpdates.set(job.id, payload.jobCache);
+          }
+          if (payload.sentenceCache && payload.sentenceCache !== sentence.furiganaCache) {
+            sentenceCacheUpdates.set(sentence.id, payload.sentenceCache);
+          }
+          return {
+            deckName: settings.ankiDeckName,
+            modelName: settings.ankiModelName,
+            fields: payload.fields,
+            tags: buildAnkiTags(settings, job, sentence),
+          };
+        }),
+      );
 
       const results = await addNotes(notes);
       const updates = new Map<string, { status: "exported" | "failed"; enabled: boolean }>();
@@ -232,11 +287,23 @@ export default function App() {
           let touched = false;
           const nextSentences = job.sentences.map((sentence) => {
             const update = updates.get(sentence.id);
-            if (!update) return sentence;
+            const cacheUpdate = sentenceCacheUpdates.get(sentence.id);
+            if (!update && !cacheUpdate) return sentence;
             touched = true;
-            return { ...sentence, exportStatus: update.status, exportEnabled: update.enabled };
+            return {
+              ...sentence,
+              exportStatus: update?.status ?? sentence.exportStatus,
+              exportEnabled: update?.enabled ?? sentence.exportEnabled,
+              furiganaCache: cacheUpdate ?? sentence.furiganaCache,
+            };
           });
-          return touched ? touch({ ...job, sentences: nextSentences }) : job;
+          const jobCache = jobCacheUpdates.get(job.id);
+          if (!touched && !jobCache) return job;
+          return touch({
+            ...job,
+            sentences: nextSentences,
+            furiganaCache: jobCache ?? job.furiganaCache,
+          });
         })
       );
 
@@ -258,11 +325,11 @@ export default function App() {
       <header className="topbar">
         <div className="title">JP SRS Sentence Builder</div>
         <div className="row" style={{ gap: 8 }}>
-          <button className="btn secondary" onClick={onExport} disabled={exportBusy}>
-            {exportBusy ? "Exporting…" : "Export"}
-          </button>
-          <button className="btn" onClick={() => setSettingsOpen(true)}>
+          <button className="btn secondary" onClick={() => setSettingsOpen(true)}>
             Settings
+          </button>
+          <button className="btn" onClick={onExport} disabled={exportBusy}>
+            {exportBusy ? "Exporting…" : "Export"}
           </button>
         </div>
       </header>
@@ -275,6 +342,10 @@ export default function App() {
             onSelect={setSelectedJobId}
             onNewJob={onNewJob}
             onDeleteJob={onDeleteJob}
+            onUpdateJob={onUpdateJob}
+            settings={settings}
+            furiganaAvailable={furiganaAvailable}
+            furiganaStatus={furiganaStatus}
           />
         </section>
 
@@ -296,11 +367,14 @@ export default function App() {
           {selectedJob ? (
             <GenerationsPane
               job={selectedJob}
+              settings={settings}
               busy={generationBusy || exportBusy}
               err={generationErr}
               notice={generationNotice}
               onClearMessages={onClearMessages}
               onChange={onUpdateJob}
+              furiganaAvailable={furiganaAvailable}
+              furiganaStatus={furiganaStatus}
             />
           ) : (
             <div className="empty">No word selected.</div>
@@ -317,6 +391,7 @@ export default function App() {
           settings={settings}
           onChange={setSettings}
           onClose={() => setSettingsOpen(false)}
+          furiganaStatus={furiganaStatus}
         />
       )}
     </div>
