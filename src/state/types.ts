@@ -95,6 +95,9 @@ export interface AppSettings {
   rememberApiKey: boolean;
   model: string;
 
+  jpdbApiKey: string;
+  rememberJpdbApiKey: boolean;
+
   notesTemplate: string;
 
   defaultDifficulty: Difficulty;

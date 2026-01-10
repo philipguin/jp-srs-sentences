@@ -38,31 +38,41 @@ export function WordSetupPane(props: {
     onChange(touch({ ...job, definitions: next }));
   }
 
-  async function populateFromJisho() {
+  async function populateFromJpdb() {
     const keyword = job.word.trim();
     if (!keyword) return;
+    if (!settings.jpdbApiKey) {
+      console.error("Missing JPDB API key (Settings → Dictionary).");
+      return;
+    }
 
     setDefinitionsLoading(true);
     try {
-      const url = new URL("https://jisho.org/api/v1/search/words");
-      url.searchParams.set("keyword", keyword);
-      const response = await fetch(url.toString());
+      const response = await fetch("https://jpdb.io/api/v1/lookup-vocabulary", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${settings.jpdbApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          list: [[keyword, job.reading?.trim() || keyword]],
+          fields: ["spelling", "reading", "meanings"],
+        }),
+      });
 
       if (!response.ok) {
-        throw new Error(`Jisho request failed (${response.status})`);
+        throw new Error(`JPDB request failed (${response.status})`);
       }
 
       const payload = (await response.json()) as {
-        data?: { senses?: { english_definitions?: string[] }[] }[];
+        vocabulary_info?: [string, string, string[]][];
       };
-      const senses = payload.data?.[0]?.senses ?? [];
-      const lines = senses
-        .map((sense) => (sense.english_definitions ?? [])[0]?.trim() ?? "")
-        .filter(Boolean);
+      const meanings = payload.vocabulary_info?.[0]?.[2] ?? [];
+      const lines = meanings.map((meaning, index) => `${index + 1}. ${meaning}`);
 
       setDefinitionsRaw(lines.join("\n"));
     } catch (error) {
-      console.error("Failed to load definitions from Jisho.", error);
+      console.error("Failed to load definitions from JPDB.", error);
     } finally {
       setDefinitionsLoading(false);
     }
@@ -115,12 +125,13 @@ export function WordSetupPane(props: {
           <button
             className="btn secondary"
             type="button"
-            onClick={populateFromJisho}
+            onClick={populateFromJpdb}
             disabled={definitionsLoading || job.word.trim().length === 0}
+            style={{ padding: "4px 8px" }}
           >
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
               {definitionsLoading ? <span className="spinner" /> : null}
-              {definitionsLoading ? "Fetching…" : "Fetch from Jisho"}
+              {definitionsLoading ? "Fetching…" : "Fetch from JPDB"}
             </span>
           </button>
         </div>

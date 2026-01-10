@@ -294,6 +294,41 @@ export function SettingsModal(props: {
             </Callout>
           ) : null}
 
+          <SectionTitle>Dictionary</SectionTitle>
+
+          <Field
+            label="jpdb.io API key"
+            help="Required to fetch definitions from jpdb.io."
+          >
+            <input
+              className="input"
+              value={settings.jpdbApiKey}
+              onChange={(e) => patch({ jpdbApiKey: e.target.value })}
+              type="password"
+              placeholder="jpdb_…"
+              autoComplete="off"
+            />
+          </Field>
+
+          <label className="row" style={{ gap: 10, cursor: "pointer", alignItems: "flex-start" }}>
+            <input
+              type="checkbox"
+              checked={settings.rememberJpdbApiKey}
+              onChange={(e) => patch({ rememberJpdbApiKey: e.target.checked })}
+              style={{ marginTop: 2 }}
+            />
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.92 }}>Remember jpdb.io API key</div>
+              <div className="small">Stores the key in localStorage on this device.</div>
+            </div>
+          </label>
+
+          {!settings.rememberJpdbApiKey && settings.jpdbApiKey.length > 0 ? (
+            <Callout tone="warn" title="Heads up">
+              jpdb.io API key will not be saved; it will clear on refresh unless you enable “Remember”.
+            </Callout>
+          ) : null}
+
           <SectionTitle>Defaults</SectionTitle>
 
           <Field label="Default difficulty" help="Used when creating new cards / prompts.">

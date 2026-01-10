@@ -89,9 +89,11 @@ export default function App() {
 
   // Persist whenever jobs or selection changes
   useEffect(() => {
-    const toSave: AppSettings = settings.rememberApiKey
-      ? settings
-      : { ...settings, apiKey: "" }; // don’t persist key unless opted in
+    const toSave: AppSettings = {
+      ...settings,
+      apiKey: settings.rememberApiKey ? settings.apiKey : "",
+      jpdbApiKey: settings.rememberJpdbApiKey ? settings.jpdbApiKey : "",
+    };
 
     savePersistedState({
       version: 2,
