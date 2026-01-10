@@ -249,22 +249,28 @@ export function SettingsModal(props: {
           <SectionTitle>LLM</SectionTitle>
 
           <Field
-            label="Model"
+            label="OpenAI model"
             required
-            help="OpenAI model ID your app will call."
           >
+            <div className="muted">
+              To be used for generating sentences. See <a href="https://platform.openai.com/docs/pricing">options table</a> and <a href="https://platform.openai.com/docs/models">details</a>.
+            </div>
             <input
               className="input"
               value={settings.model}
               onChange={(e) => patch({ model: e.target.value })}
-              placeholder="gpt-5-mini, gpt-5.2, etc."
+              placeholder="gpt-5-mini, gpt-5.2-chat-latest, etc."
             />
           </Field>
 
           <Field
-            label="API key"
-            help="Optional if you proxy requests; required if the browser calls the API directly."
+            label="OpenAI API key"
+            required
           >
+            <div className="muted">
+              Can be created <a href="https://platform.openai.com/settings/organization/api-keys">here</a>.
+              <br/>Needs permissions 'model.read', 'model.request', 'api.responses.write', 'api.responses.read'.
+            </div>
             <input
               className="input"
               value={settings.apiKey}
@@ -284,7 +290,7 @@ export function SettingsModal(props: {
             />
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
               <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.92 }}>Remember API key</div>
-              <div className="small">Stores the key in localStorage on this device.</div>
+              <div className="small">Stores the key in localStorage on this device (⚠️ insecure)</div>
             </div>
           </label>
 
@@ -298,14 +304,17 @@ export function SettingsModal(props: {
 
           <Field
             label="jpdb.io API key"
-            help="Required to fetch definitions from jpdb.io."
           >
+            <div className="muted">
+              Provide to enable one-click retrieval of definitions from <a href="https://www.jpdb.io">jpdb.io</a>, an SRS flash card service.
+              <br/>Can be found at the bottom of the <a href="https://www.jpdb.io/settings">settings page</a> once you've made an account (free).
+            </div>
             <input
               className="input"
               value={settings.jpdbApiKey}
               onChange={(e) => patch({ jpdbApiKey: e.target.value })}
               type="password"
-              placeholder="jpdb_…"
+              placeholder="abc123…"
               autoComplete="off"
             />
           </Field>
@@ -318,8 +327,8 @@ export function SettingsModal(props: {
               style={{ marginTop: 2 }}
             />
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.92 }}>Remember jpdb.io API key</div>
-              <div className="small">Stores the key in localStorage on this device.</div>
+              <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.92 }}>Remember API key</div>
+              <div className="small">Stores the key in localStorage on this device (⚠️ insecure)</div>
             </div>
           </label>
 
@@ -338,8 +347,8 @@ export function SettingsModal(props: {
               onChange={(e) => patch({ defaultDifficulty: e.target.value as Difficulty })}
             >
               {Object.keys(DIFFICULTY_PROFILES).map((d) => (
-                <option key={d} value={d}>
-                  {d}
+                <option key={d} value={d} title={DIFFICULTY_PROFILES[d].shortHelp}>
+                  {DIFFICULTY_PROFILES[d].label}
                 </option>
               ))}
             </select>

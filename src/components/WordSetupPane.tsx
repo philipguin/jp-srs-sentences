@@ -48,15 +48,19 @@ export function WordSetupPane(props: {
 
     setDefinitionsLoading(true);
     try {
-      const response = await fetch("https://jpdb.io/api/v1/lookup-vocabulary", {
+      // Note: "lookup-vocabulary" endpoint expects an sid and vid,
+      // which we don't have yet. So we "parse" instead.
+      const response = await fetch("https://jpdb.io/api/v1/parse", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${settings.jpdbApiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          list: [[keyword, job.reading?.trim() || keyword]],
-          fields: ["spelling", "reading", "meanings"],
+          text: keyword,
+          token_fields: [],
+          vocabulary_fields: ["meanings"],
+          position_length_encoding: "utf16"
         }),
       });
 
@@ -65,9 +69,10 @@ export function WordSetupPane(props: {
       }
 
       const payload = (await response.json()) as {
-        vocabulary_info?: [string, string, string[]][];
+        tokens?: number[];
+        vocabulary: [string[]][];
       };
-      const meanings = payload.vocabulary_info?.[0]?.[2] ?? [];
+      const meanings = payload.vocabulary?.[0]?.[0] ?? [];
       const lines = meanings.map((meaning, index) => `${index + 1}. ${meaning}`);
 
       setDefinitionsRaw(lines.join("\n"));
@@ -120,18 +125,21 @@ export function WordSetupPane(props: {
           </select>
         </div>
 
-        <div className="row" style={{ justifyContent: "space-between" }}>
+        <div className="row" style={{ justifyContent: "space-between", alignItems: "end" }}>
           <div className="muted">Definitions (paste numbered lines like “1. …” “2. …”)</div>
           <button
             className="btn secondary"
             type="button"
             onClick={populateFromJpdb}
-            disabled={definitionsLoading || job.word.trim().length === 0}
-            style={{ padding: "4px 8px" }}
+            disabled={!settings.jpdbApiKey || definitionsLoading || job.word.trim().length === 0}
+            style={{ padding: 0 }}
           >
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span
+              title="Retrieves definitions from jpdb.io (must be configured in settings)"
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, padding: "4px 8px" }}
+            >
               {definitionsLoading ? <span className="spinner" /> : null}
-              {definitionsLoading ? "Fetching…" : "Fetch from JPDB"}
+              {definitionsLoading ? "Fetching…" : "Fetch from jpdb.io"}
             </span>
           </button>
         </div>
@@ -222,7 +230,7 @@ export function WordSetupPane(props: {
           </div>
         )}
         <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 4 }}>
-          <button className="btn" onClick={onGenerate} disabled={busy}>
+          <button className="btn" onClick={onGenerate} disabled={busy} title="Generates sentences for the above definitions and adds them to the right. Uses the LLM configured in Settings.">
             {busy ? "Generating…" : "Generate Sentences"}
           </button>
         </div>
