@@ -38,31 +38,46 @@ export function WordSetupPane(props: {
     onChange(touch({ ...job, definitions: next }));
   }
 
-  async function populateFromJisho() {
+  async function populateFromJpdb() {
     const keyword = job.word.trim();
     if (!keyword) return;
+    if (!settings.jpdbApiKey) {
+      console.error("Missing JPDB API key (Settings → Dictionary).");
+      return;
+    }
 
     setDefinitionsLoading(true);
     try {
-      const url = new URL("https://jisho.org/api/v1/search/words");
-      url.searchParams.set("keyword", keyword);
-      const response = await fetch(url.toString());
+      // Note: "lookup-vocabulary" endpoint expects an sid and vid,
+      // which we don't have yet. So we "parse" instead.
+      const response = await fetch("https://jpdb.io/api/v1/parse", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${settings.jpdbApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: keyword,
+          token_fields: [],
+          vocabulary_fields: ["meanings"],
+          position_length_encoding: "utf16"
+        }),
+      });
 
       if (!response.ok) {
-        throw new Error(`Jisho request failed (${response.status})`);
+        throw new Error(`JPDB request failed (${response.status})`);
       }
 
       const payload = (await response.json()) as {
-        data?: { senses?: { english_definitions?: string[] }[] }[];
+        tokens?: number[];
+        vocabulary: [string[]][];
       };
-      const senses = payload.data?.[0]?.senses ?? [];
-      const lines = senses
-        .map((sense) => (sense.english_definitions ?? [])[0]?.trim() ?? "")
-        .filter(Boolean);
+      const meanings = payload.vocabulary?.[0]?.[0] ?? [];
+      const lines = meanings.map((meaning, index) => `${index + 1}. ${meaning}`);
 
       setDefinitionsRaw(lines.join("\n"));
     } catch (error) {
-      console.error("Failed to load definitions from Jisho.", error);
+      console.error("Failed to load definitions from JPDB.", error);
     } finally {
       setDefinitionsLoading(false);
     }
@@ -110,17 +125,21 @@ export function WordSetupPane(props: {
           </select>
         </div>
 
-        <div className="row" style={{ justifyContent: "space-between" }}>
+        <div className="row" style={{ justifyContent: "space-between", alignItems: "end" }}>
           <div className="muted">Definitions (paste numbered lines like “1. …” “2. …”)</div>
           <button
             className="btn secondary"
             type="button"
-            onClick={populateFromJisho}
-            disabled={definitionsLoading || job.word.trim().length === 0}
+            onClick={populateFromJpdb}
+            disabled={!settings.jpdbApiKey || definitionsLoading || job.word.trim().length === 0}
+            style={{ padding: 0 }}
           >
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span
+              title="Retrieves definitions from jpdb.io (must be configured in settings)"
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, padding: "4px 8px" }}
+            >
               {definitionsLoading ? <span className="spinner" /> : null}
-              {definitionsLoading ? "Fetching…" : "Fetch from Jisho"}
+              {definitionsLoading ? "Fetching…" : "Fetch from jpdb.io"}
             </span>
           </button>
         </div>
@@ -211,7 +230,7 @@ export function WordSetupPane(props: {
           </div>
         )}
         <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 4 }}>
-          <button className="btn" onClick={onGenerate} disabled={busy}>
+          <button className="btn" onClick={onGenerate} disabled={busy} title="Generates sentences for the above definitions and adds them to the right. Uses the LLM configured in Settings.">
             {busy ? "Generating…" : "Generate Sentences"}
           </button>
         </div>
