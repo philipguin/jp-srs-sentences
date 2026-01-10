@@ -6,6 +6,9 @@ export function defaultSettings(): AppSettings {
     rememberApiKey: false,
     model: "gpt-5-mini",
 
+    jpdbApiKey: "",
+    rememberJpdbApiKey: false,
+
     notesTemplate: "{word} here means “{meaning}”.",
 
     defaultDifficulty: "beginner",

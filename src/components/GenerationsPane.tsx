@@ -429,7 +429,7 @@ export function GenerationsPane(props: {
           disabled={busy || !hasSentences}
           style={{ padding: "4px 8px" }}
         >
-          Clear All
+          Remove All
         </button>
       </div>
     </div>
