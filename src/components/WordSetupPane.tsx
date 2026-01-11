@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Job, Difficulty, DifficultyProfile, DefinitionSpec, AppSettings } from "../state/types";
+import type { Job, Difficulty, DifficultyProfile, DefinitionSpec, AppSettings, DefinitionRecommendation } from "../state/types";
 import { DIFFICULTY_PROFILES } from "../state/difficulty";
 import { touch } from "../state/store";
 import { applyCountPreset, mergeCounts, parseDefinitions } from "../lib/parseDefinitions";
@@ -8,12 +8,19 @@ import { applyTemplate } from "../lib/template";
 export function WordSetupPane(props: {
   job: Job;
   settings: AppSettings;
-  busy: boolean;
+  generateBusy: boolean;
+  analyzeBusy: boolean;
   onGenerate: () => void;
+  onAnalyze: () => void;
   onChange: (job: Job) => void;
 }) {
-  const { job, settings, busy, onGenerate, onChange } = props;
+  const { job, settings, generateBusy, analyzeBusy, onGenerate, onAnalyze, onChange } = props;
   const [definitionsLoading, setDefinitionsLoading] = useState(false);
+  const recommendationColors: Record<DefinitionRecommendation, string> = {
+    recall: "#3fb950",
+    recognize: "#e3b341",
+    drop: "#f85149",
+  };
 
   function setDefinitionsRaw(raw: string) {
     const parsed = parseDefinitions(raw);
@@ -185,37 +192,53 @@ export function WordSetupPane(props: {
                   #{d.index}
                 </div>
 
-                <div
-                  style={{
-                    flex: 1,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                  title={
-                    d.text +
-                    "\n" +
-                    applyTemplate(settings.notesTemplate, {
-                      word: job.word,
-                      reading: job.reading,
-                      difficulty: job.difficulty,
-                      defIndex: d.index,
-                      meaning: d.text,
-                    })
-                  }
-                >
-                  {d.text}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                    title={
+                      d.text +
+                      "\n" +
+                      applyTemplate(settings.notesTemplate, {
+                        word: job.word,
+                        reading: job.reading,
+                        difficulty: job.difficulty,
+                        defIndex: d.index,
+                        meaning: d.text,
+                      })
+                    }
+                  >
+                    {d.text}
+                  </div>
+                  {(d.recommendation || d.comment || (d.colocations?.length ?? 0) > 0) ? (
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 12, marginTop: 2 }}>
+                      {d.recommendation ? (
+                        <span style={{ color: recommendationColors[d.recommendation], fontWeight: 600 }}>
+                          {d.recommendation}
+                        </span>
+                      ) : null}
+                      {d.comment ? <span className="muted">{d.comment}</span> : null}
+                      {(d.colocations?.length ?? 0) > 0 ? (
+                        <span style={{ color: "#d7dde6" }}>
+                          Colocations: {d.colocations?.join(", ")}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
 
                 <input
                   className="input"
                   type="number"
-                  min={1}
+                  min={0}
                   step={1}
                   value={d.count}
                   onChange={(e) => {
                     const n = Number(e.target.value);
-                    setDefCount(d.index, Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1);
+                    setDefCount(d.index, Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0);
                   }}
                   style={{
                     maxWidth: 32,
@@ -229,9 +252,22 @@ export function WordSetupPane(props: {
             ))}
           </div>
         )}
-        <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 4 }}>
-          <button className="btn" onClick={onGenerate} disabled={busy} title="Generates sentences for the above definitions and adds them to the right. Uses the LLM configured in Settings.">
-            {busy ? "Generating…" : "Generate Sentences"}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, paddingTop: 4 }}>
+          <button
+            className="btn secondary"
+            onClick={onAnalyze}
+            disabled={analyzeBusy || generateBusy || job.definitions.length === 0}
+            title="Analyzes definitions for study recommendations using the configured LLM."
+          >
+            {analyzeBusy ? "Analyzing…" : "Analyze Definitions"}
+          </button>
+          <button
+            className="btn"
+            onClick={onGenerate}
+            disabled={generateBusy || analyzeBusy}
+            title="Generates sentences for the above definitions and adds them to the right. Uses the LLM configured in Settings."
+          >
+            {generateBusy ? "Generating…" : "Generate Sentences"}
           </button>
         </div>
       </div>

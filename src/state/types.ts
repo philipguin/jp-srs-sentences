@@ -13,10 +13,15 @@ export type DifficultyProfile = {
 
 export type JobStatus = "draft" | "generating" | "ready" | "error";
 
+export type DefinitionRecommendation = "recall" | "recognize" | "drop";
+
 export interface DefinitionSpec {
   index: number;
   text: string;
   count: number;
+  recommendation?: DefinitionRecommendation;
+  comment?: string;
+  colocations?: string[];
 }
 
 export interface GenerationBatch {
