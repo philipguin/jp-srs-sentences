@@ -192,7 +192,8 @@ export function SettingsModal(props: {
   );
   const furiganaHelpText = useMemo(() => {
     if (!settings.enableFurigana) {
-      return "Optional. First enable may take a moment to load language data.";
+      return "Optional. Allows display and export of furigana and kana."
+           + " First enable may take a moment to load language data.";
     }
     if (furiganaStatus === "loading") {
       return "Loading furigana engine…";
@@ -225,14 +226,14 @@ export function SettingsModal(props: {
         style={{
           width: 760,
           maxWidth: "100%",
-          maxHeight: "calc(100vh - 32px)",
+          height: "min(780px, calc(100vh - 64px))",
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="paneHeader" style={{ flex: "0 0 auto" }}>
+        <div className="paneHeader" style={{ flex: "0 0 auto", padding: "4px 4px 4px 12px" }}>
           <div className="paneTitle">Settings</div>
           <button className="btn danger" onClick={onClose} aria-label="Close settings">
             ×
@@ -244,27 +245,28 @@ export function SettingsModal(props: {
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: 14,
             flex: "1 1 auto",
             overflowY: "auto",
             minHeight: 0,
-            paddingRight: 4,
+            padding: 0,
+            background: "#040410"
           }}
         >
           <div
             style={{
+              flex: "0 0 auto",
               display: "flex",
               flexWrap: "wrap",
               gap: 8,
-              paddingBottom: 8,
-              borderBottom: "1px solid #242834",
+              padding: "8px 8px 0px 8px",
+              borderBottom: "1px solid #242834"
             }}
           >
             {[
               { id: "llm", label: "LLM", showWarning: showLlmWarning },
               { id: "dictionary", label: "Dictionary" },
               { id: "defaults", label: "Defaults" },
-              { id: "furigana", label: "Furigana" },
+              { id: "furigana", label: "Kana/Furigana" },
               { id: "anki", label: "AnkiConnect", showWarning: showAnkiWarning },
             ].map((tab) => (
               <button
@@ -281,6 +283,9 @@ export function SettingsModal(props: {
                   gap: 6,
                   background: activeTab === tab.id ? "#0f111c" : undefined,
                   borderColor: activeTab === tab.id ? "#394059" : undefined,
+                  borderRadius: "10px 10px 0px 0px",
+                  margin: 0,
+                  padding: "4px 10px"
                 }}
               >
                 <span>{tab.label}</span>
@@ -292,363 +297,368 @@ export function SettingsModal(props: {
               </button>
             ))}
           </div>
-
-          {activeTab === "llm" ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <Field
-                label="OpenAI model"
-                required
-              >
-                <div className="muted">
-                  To be used for generating sentences. See <a href="https://platform.openai.com/docs/pricing">options table</a> and <a href="https://platform.openai.com/docs/models">details</a>.
-                </div>
-                <input
-                  className="input"
-                  value={settings.model}
-                  onChange={(e) => patch({ model: e.target.value })}
-                  placeholder="gpt-5-mini, gpt-5.2-chat-latest, etc."
-                />
-              </Field>
-
-              <Field
-                label="OpenAI API key"
-                required
-              >
-                <div className="muted">
-                  Can be created <a href="https://platform.openai.com/settings/organization/api-keys">here</a>.
-                  <br/>Needs permissions 'model.read', 'model.request', 'api.responses.write', 'api.responses.read'.
-                </div>
-                <input
-                  className="input"
-                  value={settings.apiKey}
-                  onChange={(e) => patch({ apiKey: e.target.value })}
-                  type="password"
-                  placeholder="sk-…"
-                  autoComplete="off"
-                />
-              </Field>
-
-              <label className="row" style={{ gap: 10, cursor: "pointer", alignItems: "flex-start" }}>
-                <input
-                  type="checkbox"
-                  checked={settings.rememberApiKey}
-                  onChange={(e) => patch({ rememberApiKey: e.target.checked })}
-                  style={{ marginTop: 2 }}
-                />
-                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.92 }}>Remember API key</div>
-                  <div className="small">Stores the key in localStorage on this device (⚠️ insecure)</div>
-                </div>
-              </label>
-
-              {!settings.rememberApiKey && settings.apiKey.length > 0 ? (
-                <Callout tone="warn" title="Heads up">
-                  API key will not be saved; it will clear on refresh unless you enable “Remember”.
-                </Callout>
-              ) : null}
-            </div>
-          ) : null}
-
-          {activeTab === "dictionary" ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <Field
-                label="jpdb.io API key"
-              >
-                <div className="muted">
-                  Provide to enable one-click retrieval of definitions from <a href="https://www.jpdb.io">jpdb.io</a>, an SRS flash card service.
-                  <br/>Can be found at the bottom of the <a href="https://www.jpdb.io/settings">settings page</a> once you've made an account (free).
-                </div>
-                <input
-                  className="input"
-                  value={settings.jpdbApiKey}
-                  onChange={(e) => patch({ jpdbApiKey: e.target.value })}
-                  type="password"
-                  placeholder="abc123…"
-                  autoComplete="off"
-                />
-              </Field>
-
-              <label className="row" style={{ gap: 10, cursor: "pointer", alignItems: "flex-start" }}>
-                <input
-                  type="checkbox"
-                  checked={settings.rememberJpdbApiKey}
-                  onChange={(e) => patch({ rememberJpdbApiKey: e.target.checked })}
-                  style={{ marginTop: 2 }}
-                />
-                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.92 }}>Remember API key</div>
-                  <div className="small">Stores the key in localStorage on this device (⚠️ insecure)</div>
-                </div>
-              </label>
-
-              {!settings.rememberJpdbApiKey && settings.jpdbApiKey.length > 0 ? (
-                <Callout tone="warn" title="Heads up">
-                  jpdb.io API key will not be saved; it will clear on refresh unless you enable “Remember”.
-                </Callout>
-              ) : null}
-            </div>
-          ) : null}
-
-          {activeTab === "defaults" ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <Field label="Default difficulty" help="Used when creating new cards / prompts.">
-                <select
-                  className="select"
-                  value={settings.defaultDifficulty}
-                  onChange={(e) => patch({ defaultDifficulty: e.target.value as Difficulty })}
+          <div style={{
+            flex: "1 1 auto",
+            minHeight: 0,
+            overflowY: "auto",
+            background: "#121521",
+            padding: "20px",
+            paddingTop: 16
+          }}>
+            {activeTab === "llm" ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <Field
+                  label="OpenAI model"
+                  required
                 >
-                  {Object.keys(DIFFICULTY_PROFILES).map((d) => (
-                    <option key={d} value={d} title={DIFFICULTY_PROFILES[d].shortHelp}>
-                      {DIFFICULTY_PROFILES[d].label}
-                    </option>
-                  ))}
-                </select>
-              </Field>
+                  <div className="muted">
+                    To be used for generating sentences. See <a href="https://platform.openai.com/docs/pricing">options table</a> and <a href="https://platform.openai.com/docs/models">details</a>.
+                  </div>
+                  <input
+                    className="input"
+                    value={settings.model}
+                    onChange={(e) => patch({ model: e.target.value })}
+                    placeholder="gpt-5-mini, gpt-5.2-chat-latest, etc."
+                  />
+                </Field>
 
-              <Field label="Default sentence counts" help="Your preset string (e.g. 1/2/3).">
-                <input
-                  className="input"
-                  value={settings.defaultCountPreset}
-                  onChange={(e) => patch({ defaultCountPreset: e.target.value })}
-                  placeholder="1/2/3"
-                />
-              </Field>
-            </div>
-          ) : null}
+                <Field
+                  label="OpenAI API key"
+                  required
+                >
+                  <div className="muted">
+                    Can be created <a href="https://platform.openai.com/settings/organization/api-keys">here</a>.
+                    <br/>Needs permissions 'model.read', 'model.request', 'api.responses.write', 'api.responses.read'.
+                  </div>
+                  <input
+                    className="input"
+                    value={settings.apiKey}
+                    onChange={(e) => patch({ apiKey: e.target.value })}
+                    type="password"
+                    placeholder="sk-…"
+                    autoComplete="off"
+                  />
+                </Field>
 
-          {activeTab === "furigana" ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <label className="row" style={{ gap: 10, cursor: "pointer", alignItems: "flex-start" }}>
-                <input
-                  type="checkbox"
-                  checked={settings.enableFurigana}
-                  onChange={(e) => patch({ enableFurigana: e.target.checked })}
-                  style={{ marginTop: 2 }}
-                />
-                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.92 }}>Furigana</div>
-                  <div className="small">{furiganaHelpText}</div>
-                </div>
-              </label>
+                <label className="row" style={{ gap: 10, cursor: "pointer", alignItems: "flex-start" }}>
+                  <input
+                    type="checkbox"
+                    checked={settings.rememberApiKey}
+                    onChange={(e) => patch({ rememberApiKey: e.target.checked })}
+                    style={{ marginTop: 2 }}
+                  />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.92 }}>Remember API key</div>
+                    <div className="small">Stores the key in localStorage on this device (⚠️ insecure)</div>
+                  </div>
+                </label>
 
-              {settings.enableFurigana ? (
-                <Field label="Kana output" help="Choose the kana style used for readings.">
+                {!settings.rememberApiKey && settings.apiKey.length > 0 ? (
+                  <Callout tone="warn" title="Heads up">
+                    API key will not be saved; it will clear on refresh unless you enable “Remember”.
+                  </Callout>
+                ) : null}
+              </div>
+            ) : null}
+
+            {activeTab === "dictionary" ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <Field
+                  label="jpdb.io API key"
+                >
+                  <div className="muted">
+                    Provide to enable one-click retrieval of definitions from <a href="https://www.jpdb.io">jpdb.io</a>, an SRS flash card service.
+                    <br/>Can be found at the bottom of the <a href="https://www.jpdb.io/settings">settings page</a> once you've made an account (free).
+                  </div>
+                  <input
+                    className="input"
+                    value={settings.jpdbApiKey}
+                    onChange={(e) => patch({ jpdbApiKey: e.target.value })}
+                    type="password"
+                    placeholder="abc123…"
+                    autoComplete="off"
+                  />
+                </Field>
+
+                <label className="row" style={{ gap: 10, cursor: "pointer", alignItems: "flex-start" }}>
+                  <input
+                    type="checkbox"
+                    checked={settings.rememberJpdbApiKey}
+                    onChange={(e) => patch({ rememberJpdbApiKey: e.target.checked })}
+                    style={{ marginTop: 2 }}
+                  />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.92 }}>Remember API key</div>
+                    <div className="small">Stores the key in localStorage on this device (⚠️ insecure)</div>
+                  </div>
+                </label>
+
+                {!settings.rememberJpdbApiKey && settings.jpdbApiKey.length > 0 ? (
+                  <Callout tone="warn" title="Heads up">
+                    jpdb.io API key will not be saved; it will clear on refresh unless you enable “Remember”.
+                  </Callout>
+                ) : null}
+              </div>
+            ) : null}
+
+            {activeTab === "defaults" ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <Field label="Difficulty" help="Used when creating new cards / prompts.">
                   <select
                     className="select"
-                    value={settings.furiganaKanaMode}
-                    onChange={(e) => patch({ furiganaKanaMode: e.target.value as AppSettings["furiganaKanaMode"] })}
+                    value={settings.defaultDifficulty}
+                    onChange={(e) => patch({ defaultDifficulty: e.target.value as Difficulty })}
                   >
-                    <option value="hiragana">Hiragana</option>
-                    <option value="katakana">Katakana</option>
+                    {Object.keys(DIFFICULTY_PROFILES).map((d) => (
+                      <option key={d} value={d} title={DIFFICULTY_PROFILES[d].shortHelp}>
+                        {DIFFICULTY_PROFILES[d].label}
+                      </option>
+                    ))}
                   </select>
                 </Field>
-              ) : null}
-            </div>
-          ) : null}
 
-          {activeTab === "anki" ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                {ankiLoading ? <span className="badge">loading…</span> : null}
-                {ankiHasProblem ? <span className="badge" style={{ borderColor: "#3a1f1f" }}>needs attention</span> : null}
-                {ankiConfigured && !ankiHasProblem ? <span className="badge">configured</span> : null}
+                <Field label="Sentence counts" help="Your preset string (e.g. 1/2/3).">
+                  <input
+                    className="input"
+                    value={settings.defaultCountPreset}
+                    onChange={(e) => patch({ defaultCountPreset: e.target.value })}
+                    placeholder="1/2/3"
+                  />
+                </Field>
               </div>
+            ) : null}
 
-              {ankiError ? (
-                <Callout tone="danger" title="AnkiConnect Error">
-                  {ankiError}
-                </Callout>
-              ) : null}
-
-              <Field label="Deck" required help="Where new notes will be added.">
-                <select
-                  className="select"
-                  value={settings.ankiDeckName}
-                  onChange={(e) => patch({ ankiDeckName: e.target.value })}
-                >
-                  <option value="">Select a deck…</option>
-                  {deckOptions.map((deck) => (
-                    <option key={deck} value={deck}>
-                      {deck}
-                    </option>
-                  ))}
-                </select>
-                {missingDeck ? (
-                  <div className="small" style={{ color: "#f2a2a2", marginTop: 6 }}>
-                    Selected deck isn’t available in Anki. Re-select a deck or fix it in Anki.
+            {activeTab === "furigana" ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <label className="row" style={{ gap: 10, cursor: "pointer", alignItems: "flex-start" }}>
+                  <input
+                    type="checkbox"
+                    checked={settings.enableFurigana}
+                    onChange={(e) => patch({ enableFurigana: e.target.checked })}
+                    style={{ marginTop: 2 }}
+                  />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.92 }}>Enable kana & furigana</div>
+                    <div className="small">{furiganaHelpText}</div>
                   </div>
+                </label>
+
+                {settings.enableFurigana ? (
+                  <Field label="Kana output" help="Choose the kana style used for readings.">
+                    <select
+                      className="select"
+                      value={settings.furiganaKanaMode}
+                      onChange={(e) => patch({ furiganaKanaMode: e.target.value as AppSettings["furiganaKanaMode"] })}
+                    >
+                      <option value="hiragana">Hiragana</option>
+                      <option value="katakana">Katakana</option>
+                    </select>
+                  </Field>
                 ) : null}
-              </Field>
+              </div>
+            ) : null}
 
-              <Field label="Note type" required help="Anki note type used for the exported notes.">
-                <select
-                  className="select"
-                  value={settings.ankiModelName}
-                  onChange={(e) => patch({ ankiModelName: e.target.value })}
-                >
-                  <option value="">Select a note type…</option>
-                  {modelOptions.map((model) => (
-                    <option key={model} value={model}>
-                      {model}
-                    </option>
-                  ))}
-                </select>
-                {missingModel ? (
-                  <div className="small" style={{ color: "#f2a2a2", marginTop: 6 }}>
-                    Selected note type isn’t available in Anki. Re-select a note type or fix it in Anki.
-                  </div>
+            {activeTab === "anki" ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {ankiLoading ? <span className="badge">loading…</span> : null}
+                  {ankiHasProblem ? <span className="badge" style={{ borderColor: "#3a1f1f" }}>needs attention</span> : null}
+                  {ankiConfigured && !ankiHasProblem ? <span className="badge">configured</span> : null}
+                </div>
+
+                {ankiError ? (
+                  <Callout tone="danger" title="AnkiConnect Error">
+                    {ankiError}
+                  </Callout>
                 ) : null}
-              </Field>
 
-              {ankiFieldsError ? (
-                <Callout tone="danger" title="Failed to load fields">
-                  {ankiFieldsError}
-                </Callout>
-              ) : null}
-
-              {settings.ankiModelName ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  <SectionTitle
-                    right={
-                      <span className="small" style={{ opacity: 0.75 }}>
-                        {ankiFieldsLoading ? "Loading fields…" : ankiFields.length ? `${ankiFields.length} fields` : ""}
-                      </span>
-                    }
+                <Field label="Deck" required help="Where new notes will be added.">
+                  <select
+                    className="select"
+                    value={settings.ankiDeckName}
+                    onChange={(e) => patch({ ankiDeckName: e.target.value })}
                   >
-                    Field mapping
-                  </SectionTitle>
+                    <option value="">Select a deck…</option>
+                    {deckOptions.map((deck) => (
+                      <option key={deck} value={deck}>
+                        {deck}
+                      </option>
+                    ))}
+                  </select>
+                  {missingDeck ? (
+                    <div className="small" style={{ color: "#f2a2a2", marginTop: 6 }}>
+                      Selected deck isn’t available in Anki. Re-select a deck or fix it in Anki.
+                    </div>
+                  ) : null}
+                </Field>
 
-                  <div className="small">
-                    Map Anki fields (left) to your app’s data (right).
-                  </div>
+                <Field label="Note type" required help="Anki note type used for the exported notes.">
+                  <select
+                    className="select"
+                    value={settings.ankiModelName}
+                    onChange={(e) => patch({ ankiModelName: e.target.value })}
+                  >
+                    <option value="">Select a note type…</option>
+                    {modelOptions.map((model) => (
+                      <option key={model} value={model}>
+                        {model}
+                      </option>
+                    ))}
+                  </select>
+                  {missingModel ? (
+                    <div className="small" style={{ color: "#f2a2a2", marginTop: 6 }}>
+                      Selected note type isn’t available in Anki. Re-select a note type or fix it in Anki.
+                    </div>
+                  ) : null}
+                </Field>
 
-                  {ankiFields.length === 0 && !ankiFieldsLoading ? (
-                    <div className="muted">No fields loaded yet.</div>
-                  ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                      {/* header row */}
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 10,
-                          padding: "6px 8px",
-                          border: "1px solid #242834",
-                          borderRadius: 10,
-                          background: "#121521",
-                        }}
-                      >
-                        <div className="small" style={{ width: 180, fontWeight: 700, opacity: 0.85 }}>
-                          Anki field
+                {ankiFieldsError ? (
+                  <Callout tone="danger" title="Failed to load fields">
+                    {ankiFieldsError}
+                  </Callout>
+                ) : null}
+
+                {settings.ankiModelName ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <SectionTitle
+                      right={
+                        <span className="small" style={{ opacity: 0.75 }}>
+                          {ankiFieldsLoading ? "Loading fields…" : ankiFields.length ? `${ankiFields.length} fields` : ""}
+                        </span>
+                      }
+                    >
+                      Field mapping
+                    </SectionTitle>
+
+                    <div className="small">
+                      Map Anki fields (left) to your app’s data (right).
+                    </div>
+
+                    {ankiFields.length === 0 && !ankiFieldsLoading ? (
+                      <div className="muted">No fields loaded yet.</div>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                        {/* header row */}
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: 10,
+                            padding: "6px 8px",
+                            border: "1px solid #242834",
+                            borderRadius: 10,
+                            background: "#121521",
+                          }}
+                        >
+                          <div className="small" style={{ width: 180, fontWeight: 700, opacity: 0.85 }}>
+                            Anki field
+                          </div>
+                          <div className="small" style={{ flex: 1, fontWeight: 700, opacity: 0.85 }}>
+                            Maps to
+                          </div>
                         </div>
-                        <div className="small" style={{ flex: 1, fontWeight: 700, opacity: 0.85 }}>
-                          Maps to
-                        </div>
-                      </div>
 
-                      <div style={{
-                          border: "1px solid #242834",
-                          borderRadius: 10,
-                          background: "#0f111c",
-                      }}>
-                        {ankiFields.map((field) => (
-                          <div
-                            key={field}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 10,
-                              padding: "4px 8px",
-                            }}
-                          >
-                            <div style={{ width: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                              {field}
-                            </div>
-                            <select
-                              className="select"
-                              value={currentFieldMapping[field] ?? ""}
-                              onChange={(e) => updateFieldMapping(field, e.target.value as AnkiFieldSource)}
+                        <div style={{
+                            border: "1px solid #242834",
+                            borderRadius: 10,
+                            background: "#0f111c",
+                        }}>
+                          {ankiFields.map((field) => (
+                            <div
+                              key={field}
                               style={{
-                                padding: "4px 0px 4px 0px",
-                                color: currentFieldMapping[field] ? "" : "#777"
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                                padding: "4px 8px",
                               }}
                             >
-                              {ANKI_FIELD_OPTIONS.map((option) => (
-                                <option key={`${field}-${option.value}`} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        ))}
+                              <div style={{ width: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {field}
+                              </div>
+                              <select
+                                className="select"
+                                value={currentFieldMapping[field] ?? ""}
+                                onChange={(e) => updateFieldMapping(field, e.target.value as AnkiFieldSource)}
+                                style={{
+                                  padding: "4px 0px 4px 0px",
+                                  color: currentFieldMapping[field] ? "" : "#777"
+                                }}
+                              >
+                                {ANKI_FIELD_OPTIONS.map((option, index) => (
+                                  <option key={`${field}-${option.value}`} value={option.value} style={{
+                                    color: option.value ? "#eee" : "#777"
+                                  }}>
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {!hasJpField || !hasEnField ? (
-                    <Callout tone="warn" title="Recommended mapping">
-                      Map both JP and EN sentence sources to avoid blank cards.
-                    </Callout>
-                  ) : null}
-                </div>
-              ) : null}
-
-              <SectionTitle>Export formatting</SectionTitle>
-
-              <Field
-                label="Notes template"
-                help='Supported macros: {word}, {reading}, {difficulty}, {meaning}, {meaningNumber}, {sentenceJp}, {sentenceEn}'
-              >
-                <input
-                  className="input"
-                  value={settings.notesTemplate}
-                  onChange={(e) => patch({ notesTemplate: e.target.value })}
-                  placeholder="{word} here means “{meaning}”."
-                />
-                {/* Allow editing while invalid, but surface errors inline. */}
-                {notesTemplateValidation.unknown.length > 0 || notesTemplateValidation.hasForbiddenNotes ? (
-                  <div className="small" style={{ color: "#f2a2a2", marginTop: 6 }}>
-                    {notesTemplateValidation.hasForbiddenNotes ? (
-                      <div>Unsupported macro: {"{notes}"} is reserved and cannot be used here.</div>
-                    ) : null}
-                    {notesTemplateValidation.unknown.length > 0 ? (
-                      <div>
-                        Unknown macros:{" "}
-                        {notesTemplateValidation.unknown.map((macro) => `{${macro}}`).join(", ")}.
-                      </div>
+                    {!hasJpField || !hasEnField ? (
+                      <Callout tone="warn" title="Recommended mapping">
+                        Map both JP and EN sentence sources to avoid blank cards.
+                      </Callout>
                     ) : null}
                   </div>
                 ) : null}
-              </Field>
 
-              <Field label="Tags" help="Space-delimited. Will be added to exported notes.">
-                <input
-                  className="input"
-                  value={settings.ankiTags}
-                  onChange={(e) => patch({ ankiTags: e.target.value })}
-                  placeholder="japanese jpdb_sup"
-                />
-              </Field>
+                <SectionTitle>Export formatting</SectionTitle>
 
-              <label className="row" style={{ gap: 10, cursor: "pointer", alignItems: "flex-start" }}>
-                <input
-                  type="checkbox"
-                  checked={settings.ankiIncludeDifficultyTag}
-                  onChange={(e) => patch({ ankiIncludeDifficultyTag: e.target.checked })}
-                  style={{ marginTop: 2 }}
-                />
-                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.92 }}>Include difficulty tags</div>
-                  <div className="small">Adds tags like "difficulty-beginner" to exports.</div>
-                </div>
-              </label>
-            </div>
-          ) : null}
+                <Field
+                  label="Notes template"
+                  help='Supported macros: {word}, {reading}, {difficulty}, {meaning}, {meaningNumber}, {sentenceJp}, {sentenceEn}'
+                >
+                  <input
+                    className="input"
+                    value={settings.notesTemplate}
+                    onChange={(e) => patch({ notesTemplate: e.target.value })}
+                    placeholder="{word} here means “{meaning}”."
+                  />
+                  {/* Allow editing while invalid, but surface errors inline. */}
+                  {notesTemplateValidation.unknown.length > 0 || notesTemplateValidation.hasForbiddenNotes ? (
+                    <div className="small" style={{ color: "#f2a2a2", marginTop: 6 }}>
+                      {notesTemplateValidation.hasForbiddenNotes ? (
+                        <div>Unsupported macro: {"{notes}"} is reserved and cannot be used here.</div>
+                      ) : null}
+                      {notesTemplateValidation.unknown.length > 0 ? (
+                        <div>
+                          Unknown macros:{" "}
+                          {notesTemplateValidation.unknown.map((macro) => `{${macro}}`).join(", ")}.
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </Field>
 
-          <div className="row" style={{ justifyContent: "flex-end", marginTop: 4 }}>
-            <button className="btn secondary" onClick={onClose}>
-              Close
-            </button>
+                <Field label="Tags" help="Space-delimited. Will be added to exported notes.">
+                  <input
+                    className="input"
+                    value={settings.ankiTags}
+                    onChange={(e) => patch({ ankiTags: e.target.value })}
+                    placeholder="japanese jpdb_sup"
+                  />
+                </Field>
+
+                <label className="row" style={{ gap: 10, cursor: "pointer", alignItems: "flex-start" }}>
+                  <input
+                    type="checkbox"
+                    checked={settings.ankiIncludeDifficultyTag}
+                    onChange={(e) => patch({ ankiIncludeDifficultyTag: e.target.checked })}
+                    style={{ marginTop: 2 }}
+                  />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.92 }}>Include difficulty tags</div>
+                    <div className="small">Adds tags like "difficulty-beginner" to exports.</div>
+                  </div>
+                </label>
+              </div>
+            ) : null}
           </div>
+          {/* Footer would go here */}
         </div>
       </div>
     </div>
