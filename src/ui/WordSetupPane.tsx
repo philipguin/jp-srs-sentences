@@ -197,7 +197,7 @@ export function WordSetupPane(props: {
                       applyTemplate(settings.notesTemplate, {
                         word: wordEntry.word,
                         reading: wordEntry.reading,
-                        difficulty: wordEntry.difficulty,
+                        difficulty: wordEntry.sentenceGenDifficulty,
                         defIndex: d.index,
                         meaning: d.text,
                       })
@@ -274,8 +274,10 @@ export function WordSetupPane(props: {
           <label className="muted">Style</label>
           <select
             className="select"
-            value={wordEntry.difficulty}
-            onChange={(e) => onUpdateWordEntry(touch({ ...wordEntry, difficulty: e.target.value as Difficulty }))}
+            value={wordEntry.sentenceGenDifficulty}
+            onChange={(e) =>
+              onUpdateWordEntry(touch({ ...wordEntry, sentenceGenDifficulty: e.target.value as Difficulty }))
+            }
           >
             {(Object.entries(DIFFICULTY_PROFILES) as [Difficulty, DifficultyProfile][])
               .map(([diff, profile]) => (

@@ -20,7 +20,7 @@ export interface WordEntry {
   id: string;
   word: string;
   reading?: string;
-  difficulty: Difficulty;
+  sentenceGenDifficulty: Difficulty;
   definitionsRaw: string;
   definitions: DefinitionSpec[];
   generations: SentenceGeneration[];

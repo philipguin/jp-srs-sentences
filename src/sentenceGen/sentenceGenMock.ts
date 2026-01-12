@@ -15,7 +15,7 @@ export function buildMockGenerations(wordEntry: WordEntry, settings: AppSettings
         meaning: def.text,
         defIndex: String(def.index),
         reading: wordEntry.reading ?? "",
-        difficulty: wordEntry.difficulty,
+        difficulty: wordEntry.sentenceGenDifficulty,
       });
       results.push({
         id: `mock-${def.index}-${i}-${now}`,
@@ -29,7 +29,7 @@ export function buildMockGenerations(wordEntry: WordEntry, settings: AppSettings
           : "Sample sentence for the provided definition.",
         notes,
         createdAt: now,
-        difficulty: wordEntry.difficulty,
+        difficulty: wordEntry.sentenceGenDifficulty,
       });
     }
   }
