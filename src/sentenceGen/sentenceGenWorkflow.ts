@@ -1,19 +1,16 @@
 import type { AppSettings } from "../settings/settingsTypes";
-import type { Difficulty, SentenceGeneration } from "./sentenceGenTypes";
+import type { Difficulty, SentenceGeneration, SentenceItem } from "./sentenceGenTypes";
 import type { WordEntry } from "../wordEntry/wordEntryTypes";
 import { DIFFICULTY_PROFILES } from "./sentenceGenDifficulty";
 import { applyTemplate } from "../shared/template";
 import type { LlmClient } from "../llm/llmClient";
 import Mustache from "mustache";
 import generateSentencesTemplate from "./generateSentences.mustache?raw";
+import { uid } from "../wordEntry/wordEntryStore";
 
 type ModelItem = { defIndex: number; jp: string; en: string };
 
 type ModelPayload = { items: ModelItem[] };
-
-function uid(): string {
-  return Math.random().toString(16).slice(2) + Date.now().toString(16);
-}
 
 function buildPromptForGenerateSentences(wordEntry: WordEntry, difficultyKey: Difficulty): string {
   const difficulty = DIFFICULTY_PROFILES[difficultyKey];
@@ -114,4 +111,32 @@ export async function generateSentences(
   });
 
   return results;
+}
+
+export function buildSentenceItem(wordEntry: WordEntry, generation: SentenceGeneration, batchId: number): SentenceItem {
+  const definition = wordEntry.definitions.find((item) => item.index === generation.defIndex);
+  return {
+    id: uid(),
+    jp: generation.jp,
+    en: generation.en,
+    notes: generation.notes,
+    source: "generated",
+    createdAt: generation.createdAt,
+    exportEnabled: true,
+    exportStatus: "new",
+    generationId: generation.id,
+    batchId,
+    difficulty: generation.difficulty,
+    definitionSnapshot: definition
+      ? {
+          index: definition.index,
+          text: definition.text,
+        }
+      : undefined,
+  };
+}
+
+export function nextBatchId(batches: WordEntry["generationBatches"]): number {
+  if (batches.length === 0) return 1;
+  return Math.max(...batches.map((batch) => batch.id)) + 1;
 }

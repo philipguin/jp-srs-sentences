@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { AppSettings } from "../settings/settingsTypes";
 import type { WordEntry } from "../wordEntry/wordEntryTypes";
 import type { SentenceItem } from "../sentenceGen/sentenceGenTypes";
+import type { AnkiExportState, FuriganaState, SentenceGenState, WordEntryState } from "../app/AppLogic";
 import { DIFFICULTY_PROFILES } from "../sentenceGen/sentenceGenDifficulty";
 import { touch } from "../wordEntry/wordEntryStore";
 import { buildKuroshiroCacheKey, ensureKuroshiroCacheEntry } from "../kuroshiro/kuroshiroService";
@@ -62,25 +63,17 @@ function SentenceDisplay(props: {
 export function GenerationsPane(props: {
   wordEntry: WordEntry;
   settings: AppSettings;
-  busy: boolean;
-  err: string | null;
-  notice: string | null;
-  onClearMessages: () => void;
-  onUpdateWordEntry: (wordEntry: WordEntry) => void;
-  furiganaAvailable: boolean;
-  furiganaStatus: "idle" | "loading" | "ready" | "error";
+  wordEntryState: WordEntryState;
+  sentenceGenState: SentenceGenState;
+  ankiExportState: AnkiExportState;
+  furiganaState: FuriganaState;
 }) {
-  const {
-    wordEntry,
-    settings,
-    busy,
-    err,
-    notice,
-    onClearMessages,
-    onUpdateWordEntry,
-    furiganaAvailable,
-    furiganaStatus,
-  } = props;
+  const { wordEntry, settings, wordEntryState, sentenceGenState, ankiExportState, furiganaState } = props;
+  const { onUpdateWordEntry } = wordEntryState;
+  const { generationErr: err, generationNotice: notice, onClearMessages, generationBusy } = sentenceGenState;
+  const { exportBusy } = ankiExportState;
+  const { available: furiganaAvailable, status: furiganaStatus } = furiganaState;
+  const busy = generationBusy || exportBusy;
   const [groupBy, setGroupBy] = useState<"definition" | "batch">("definition");
   const [displayMode, setDisplayMode] = useState<DisplayMode>("natural");
 

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AppSettings } from "../settings/settingsTypes";
 import type { WordEntry } from "../wordEntry/wordEntryTypes";
+import type { FuriganaState, WordEntryState } from "../app/AppLogic";
 import { buildKuroshiroCacheKey, ensureKuroshiroCacheEntry } from "../kuroshiro/kuroshiroService";
 
 type DisplayMode = "natural" | "furigana" | "kana";
@@ -57,16 +58,11 @@ function WordEntryTitle(props: {
 }
 
 export function WordListPane(props: {
-  wordEntries: WordEntry[];
-  selectedWordEntryId: string;
-  onSelect: (id: string) => void;
-  onNewWordEntry: () => void;
-  onDeleteWordEntry: (id: string) => void;
-  onUpdateWordEntry: (wordEntry: WordEntry) => void;
+  wordEntryState: WordEntryState;
   settings: AppSettings;
-  furiganaAvailable: boolean;
-  furiganaStatus: "idle" | "loading" | "ready" | "error";
+  furiganaState: FuriganaState;
 }) {
+  const { wordEntryState, settings, furiganaState } = props;
   const {
     wordEntries,
     selectedWordEntryId,
@@ -74,10 +70,8 @@ export function WordListPane(props: {
     onNewWordEntry,
     onDeleteWordEntry,
     onUpdateWordEntry,
-    settings,
-    furiganaAvailable,
-    furiganaStatus,
-  } = props;
+  } = wordEntryState;
+  const { available: furiganaAvailable, status: furiganaStatus } = furiganaState;
   const [displayMode, setDisplayMode] = useState<DisplayMode>("natural");
 
   useEffect(() => {

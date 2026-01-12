@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { AppSettings } from "../settings/settingsTypes";
 import type { Difficulty, DifficultyProfile } from "../sentenceGen/sentenceGenTypes";
 import type { DefinitionSpec, DefinitionStudyPriority, DefinitionValidity, WordEntry } from "../wordEntry/wordEntryTypes";
+import type { SentenceGenState, WordEntryState } from "../app/AppLogic";
 import { DIFFICULTY_PROFILES } from "../sentenceGen/sentenceGenDifficulty";
 import { touch } from "../wordEntry/wordEntryStore";
 import { applyCountPreset, mergeCounts, parseDefinitions } from "../wordEntry/wordEntryDefinitions";
@@ -10,25 +11,19 @@ import { applyTemplate } from "../shared/template";
 export function WordSetupPane(props: {
   wordEntry: WordEntry;
   settings: AppSettings;
-  sentenceGenDifficulty: Difficulty;
-  generateBusy: boolean;
-  analyzeBusy: boolean;
-  onGenerate: () => void;
-  onAnalyze: () => void;
-  onDifficultyChange: (difficulty: Difficulty) => void;
-  onUpdateWordEntry: (wordEntry: WordEntry) => void;
+  sentenceGenState: SentenceGenState;
+  wordEntryState: WordEntryState;
 }) {
+  const { wordEntry, settings, sentenceGenState, wordEntryState } = props;
   const {
-    wordEntry,
-    settings,
-    sentenceGenDifficulty,
-    generateBusy,
-    analyzeBusy,
+    difficulty: sentenceGenDifficulty,
+    generationBusy,
+    analysisBusy: analyzeBusy,
     onGenerate,
     onAnalyze,
     onDifficultyChange,
-    onUpdateWordEntry,
-  } = props;
+  } = sentenceGenState;
+  const { onUpdateWordEntry } = wordEntryState;
   const [definitionsLoading, setDefinitionsLoading] = useState(false);
 
   const validityColors: Record<DefinitionValidity, string> = { //"#aa00cc";//"#f85149";
@@ -271,7 +266,7 @@ export function WordSetupPane(props: {
           <button
             className="btn secondary"
             onClick={onAnalyze}
-            disabled={analyzeBusy || generateBusy || !wordEntry.word || wordEntry.definitions.length === 0}
+            disabled={analyzeBusy || generationBusy || !wordEntry.word || wordEntry.definitions.length === 0}
             title="Analyzes definitions for study recommendations using the configured LLM."
           >
             {analyzeBusy && "Analyzing…"}
@@ -302,10 +297,10 @@ export function WordSetupPane(props: {
           <button
             className="btn"
             onClick={onGenerate}
-            disabled={generateBusy || analyzeBusy || !wordEntry.word}
+            disabled={generationBusy || analyzeBusy || !wordEntry.word}
             title="Generates sentences for the above definitions and adds them to the right. Uses the LLM configured in Settings."
           >
-            {generateBusy ? "Generating…" : "Generate"}
+            {generationBusy ? "Generating…" : "Generate"}
           </button>
         </div>
 
