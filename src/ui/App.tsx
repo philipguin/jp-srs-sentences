@@ -10,7 +10,9 @@ import type { Difficulty, GenerationBatch, SentenceGeneration, SentenceItem } fr
 import type { WordEntry } from "../wordEntry/wordEntryTypes";
 import { defaultSettings } from "../settings/settingsDefaults";
 import { loadPersistedState, savePersistedState } from "../app/appPersistence";
-import { analyzeMeanings, generateSentences } from "../llm/llmResponses";
+import { openAiClient } from "../llm/openAiClient";
+import { generateSentences } from "../sentenceGen/sentenceGenWorkflow";
+import { analyzeMeanings } from "../wordEntry/wordEntryMeaningAnalysis";
 import { buildMockGenerations } from "../sentenceGen/sentenceGenMock";
 import { useAnkiConnectStatus, fetchModelFieldNames, addNotes } from "../anki/ankiConnect";
 import { buildAnkiFieldPayload, buildAnkiTags } from "../anki/ankiExport";
@@ -81,6 +83,7 @@ function nextBatchId(batches: GenerationBatch[]): number {
 }
 
 export default function App() {
+  const llmClient = openAiClient;
   const initial = useMemo(() => pickInitialState(), []);
   const [wordEntries, setWordEntries] = useState<WordEntry[]>(initial.wordEntries);
   const [selectedWordEntryId, setSelectedWordEntryId] = useState<string>(initial.selectedWordEntryId);
@@ -197,7 +200,7 @@ export default function App() {
       onUpdateWordEntry(touch({ ...selectedWordEntry, status: "generating" }));
 
       const results: SentenceGeneration[] = settings.apiKey
-        ? await generateSentences(selectedWordEntry, settings, sentenceGenDifficulty)
+        ? await generateSentences(llmClient, selectedWordEntry, settings, sentenceGenDifficulty)
         : buildMockGenerations(selectedWordEntry, settings, sentenceGenDifficulty);
 
       if (!settings.apiKey) {
@@ -237,7 +240,7 @@ export default function App() {
     setGenerationNotice(null);
     setAnalysisBusy(true);
     try {
-      const results = await analyzeMeanings(selectedWordEntry, settings);
+      const results = await analyzeMeanings(llmClient, selectedWordEntry, settings);
       const resultsByIndex = new Map(results.map((result) => [result.meaningIndex, result]));
       const nextDefinitions = selectedWordEntry.definitions.map((definition) => {
         const analysis = resultsByIndex.get(definition.index);
