@@ -1,24 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AppSettings } from "../settings/settingsTypes";
-import type { Job } from "../wordEntry/wordEntryTypes";
+import type { WordEntry } from "../wordEntry/wordEntryTypes";
 import { buildKuroshiroCacheKey, ensureKuroshiroCacheEntry } from "../kuroshiro/kuroshiroService";
 
 type DisplayMode = "natural" | "furigana" | "kana";
 
-function JobTitle(props: {
-  job: Job;
+function WordEntryTitle(props: {
+  wordEntry: WordEntry;
   displayMode: DisplayMode;
   furiganaAvailable: boolean;
   kanaMode: AppSettings["furiganaKanaMode"];
-  onUpdateJob: (job: Job) => void;
+  onUpdateWordEntry: (wordEntry: WordEntry) => void;
 }) {
-  const { job, displayMode, furiganaAvailable, kanaMode, onUpdateJob } = props;
-  const cacheKey = useMemo(() => buildKuroshiroCacheKey(job.word, kanaMode), [job.word, kanaMode]);
-  const cache = job.furiganaCache?.key === cacheKey ? job.furiganaCache : undefined;
+  const { wordEntry, displayMode, furiganaAvailable, kanaMode, onUpdateWordEntry } = props;
+  const cacheKey = useMemo(() => buildKuroshiroCacheKey(wordEntry.word, kanaMode), [wordEntry.word, kanaMode]);
+  const cache = wordEntry.furiganaCache?.key === cacheKey ? wordEntry.furiganaCache : undefined;
 
   useEffect(() => {
     if (!furiganaAvailable) return;
-    if (!job.word.trim()) return;
+    if (!wordEntry.word.trim()) return;
     if (displayMode === "natural") return;
     const field = displayMode === "kana" ? "kana" : "rubyHtml";
     if (cache?.[field]) return;
@@ -26,10 +26,10 @@ function JobTitle(props: {
 
     async function load() {
       try {
-        const nextCache = await ensureKuroshiroCacheEntry(job.word, kanaMode, cache, field);
+        const nextCache = await ensureKuroshiroCacheEntry(wordEntry.word, kanaMode, cache, field);
         if (cancelled) return;
         if (nextCache.key === cache?.key && nextCache[field] === cache?.[field]) return;
-        onUpdateJob({ ...job, furiganaCache: nextCache });
+        onUpdateWordEntry({ ...wordEntry, furiganaCache: nextCache });
       } catch {
         // Ignore and fall back to plain text.
       }
@@ -40,40 +40,40 @@ function JobTitle(props: {
     return () => {
       cancelled = true;
     };
-  }, [cache, displayMode, furiganaAvailable, job, kanaMode, onUpdateJob]);
+  }, [cache, displayMode, furiganaAvailable, wordEntry, kanaMode, onUpdateWordEntry]);
 
   if (displayMode === "kana") {
     if (furiganaAvailable && cache?.kana) {
       return <span>{cache.kana}</span>;
     }
-    return <span>{job.reading || job.word}</span>;
+    return <span>{wordEntry.reading || wordEntry.word}</span>;
   }
 
   if (displayMode === "furigana" && furiganaAvailable && cache?.rubyHtml) {
     return <span dangerouslySetInnerHTML={{ __html: cache.rubyHtml }} />;
   }
 
-  return <span>{job.word}</span>;
+  return <span>{wordEntry.word}</span>;
 }
 
 export function WordListPane(props: {
-  jobs: Job[];
-  selectedJobId: string;
+  wordEntries: WordEntry[];
+  selectedWordEntryId: string;
   onSelect: (id: string) => void;
-  onNewJob: () => void;
-  onDeleteJob: (id: string) => void;
-  onUpdateJob: (job: Job) => void;
+  onNewWordEntry: () => void;
+  onDeleteWordEntry: (id: string) => void;
+  onUpdateWordEntry: (wordEntry: WordEntry) => void;
   settings: AppSettings;
   furiganaAvailable: boolean;
   furiganaStatus: "idle" | "loading" | "ready" | "error";
 }) {
   const {
-    jobs,
-    selectedJobId,
+    wordEntries,
+    selectedWordEntryId,
     onSelect,
-    onNewJob,
-    onDeleteJob,
-    onUpdateJob,
+    onNewWordEntry,
+    onDeleteWordEntry,
+    onUpdateWordEntry,
     settings,
     furiganaAvailable,
     furiganaStatus,
@@ -104,7 +104,7 @@ export function WordListPane(props: {
             {furiganaAvailable ? <option value="furigana">With furigana</option> : null}
             <option value="kana">As kana</option>
           </select>
-          <button className="btn secondary" onClick={onNewJob} style={{ flexShrink: 0, padding: "2px 8px" }}>
+          <button className="btn secondary" onClick={onNewWordEntry} style={{ flexShrink: 0, padding: "2px 8px" }}>
             + New
           </button>
         </div>
@@ -112,17 +112,17 @@ export function WordListPane(props: {
 
       <div className="paneBody">
         <div className="list">
-          {jobs.map((job) => {
-            const selected = job.id === selectedJobId;
-            const title = job.word.trim() ? job.word.trim() : "(untitled)";
-            const defs = job.definitions.length;
-            const res = job.sentences.length;
+          {wordEntries.map((wordEntry) => {
+            const selected = wordEntry.id === selectedWordEntryId;
+            const title = wordEntry.word.trim() ? wordEntry.word.trim() : "(untitled)";
+            const defs = wordEntry.definitions.length;
+            const res = wordEntry.sentences.length;
 
             return (
               <div
-                key={job.id}
+                key={wordEntry.id}
                 className={"item" + (selected ? " selected" : "")}
-                onClick={() => onSelect(job.id)}
+                onClick={() => onSelect(wordEntry.id)}
                 role="button"
                 tabIndex={0}
               >
@@ -131,17 +131,17 @@ export function WordListPane(props: {
                     {title === "(untitled)" ? (
                       title
                     ) : (
-                      <JobTitle
-                        job={job}
+                      <WordEntryTitle
+                        wordEntry={wordEntry}
                         displayMode={displayMode}
                         furiganaAvailable={furiganaAvailable}
                         kanaMode={settings.furiganaKanaMode}
-                        onUpdateJob={onUpdateJob}
+                        onUpdateWordEntry={onUpdateWordEntry}
                       />
                     )}
                   </div>
                   <div className="small">
-                    defs: {defs} · sentences: {res} · {job.status}
+                    defs: {defs} · sentences: {res} · {wordEntry.status}
                   </div>
                 </div>
 
@@ -149,9 +149,9 @@ export function WordListPane(props: {
                   className="btn danger"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onDeleteJob(job.id);
+                    onDeleteWordEntry(wordEntry.id);
                   }}
-                  title="Delete job"
+                  title="Delete word entry"
                 >
                   ×
                 </button>
@@ -160,7 +160,7 @@ export function WordListPane(props: {
           })}
         </div>
 
-        {jobs.length === 0 && <div className="muted">No jobs yet.</div>}
+        {wordEntries.length === 0 && <div className="muted">No word entries yet.</div>}
       </div>
     </div>
   );

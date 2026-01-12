@@ -1,12 +1,12 @@
 import type { AppSettings } from "../settings/settingsTypes";
-import type { Job } from "../wordEntry/wordEntryTypes";
+import type { WordEntry } from "../wordEntry/wordEntryTypes";
 
 const STORAGE_KEY = "jp-srs-sentences:v2";
 
 export interface PersistedStateV2 {
   version: 2;
-  selectedJobId?: string;
-  jobs: Job[];
+  selectedWordEntryId?: string;
+  wordEntries: WordEntry[];
   settings: AppSettings;
 }
 
@@ -14,9 +14,22 @@ export function loadPersistedState(): PersistedStateV2 | null {
   try {
     const rawV2 = localStorage.getItem(STORAGE_KEY);
     if (rawV2) {
-      const parsed = JSON.parse(rawV2) as PersistedStateV2;
-      if (parsed?.version === 2 && Array.isArray(parsed.jobs) && parsed.settings) {
-        return parsed;
+      const parsed = JSON.parse(rawV2) as PersistedStateV2 & {
+        jobs?: WordEntry[];
+        selectedJobId?: string;
+      };
+      if (parsed?.version === 2 && parsed.settings) {
+        if (Array.isArray(parsed.wordEntries)) {
+          return parsed;
+        }
+        if (Array.isArray(parsed.jobs)) {
+          return {
+            version: 2,
+            wordEntries: parsed.jobs,
+            selectedWordEntryId: parsed.selectedJobId,
+            settings: parsed.settings,
+          };
+        }
       }
     }
 

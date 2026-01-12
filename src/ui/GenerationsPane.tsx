@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AppSettings } from "../settings/settingsTypes";
-import type { Job } from "../wordEntry/wordEntryTypes";
+import type { WordEntry } from "../wordEntry/wordEntryTypes";
 import type { SentenceItem } from "../sentenceGen/sentenceGenTypes";
 import { DIFFICULTY_PROFILES } from "../sentenceGen/sentenceGenDifficulty";
 import { touch } from "../wordEntry/wordEntryStore";
@@ -60,17 +60,27 @@ function SentenceDisplay(props: {
 }
 
 export function GenerationsPane(props: {
-  job: Job;
+  wordEntry: WordEntry;
   settings: AppSettings;
   busy: boolean;
   err: string | null;
   notice: string | null;
   onClearMessages: () => void;
-  onChange: (job: Job) => void;
+  onUpdateWordEntry: (wordEntry: WordEntry) => void;
   furiganaAvailable: boolean;
   furiganaStatus: "idle" | "loading" | "ready" | "error";
 }) {
-  const { job, settings, busy, err, notice, onClearMessages, onChange, furiganaAvailable, furiganaStatus } = props;
+  const {
+    wordEntry,
+    settings,
+    busy,
+    err,
+    notice,
+    onClearMessages,
+    onUpdateWordEntry,
+    furiganaAvailable,
+    furiganaStatus,
+  } = props;
   const [groupBy, setGroupBy] = useState<"definition" | "batch">("definition");
   const [displayMode, setDisplayMode] = useState<DisplayMode>("natural");
 
@@ -81,14 +91,16 @@ export function GenerationsPane(props: {
   }, [displayMode, furiganaAvailable]);
 
   function onRemove(sentenceId: string) {
-    onChange(touch({ ...job, sentences: job.sentences.filter((sentence) => sentence.id !== sentenceId) }));
+    onUpdateWordEntry(
+      touch({ ...wordEntry, sentences: wordEntry.sentences.filter((sentence) => sentence.id !== sentenceId) })
+    );
   }
 
   function onToggleExport(sentenceId: string) {
-    onChange(
+    onUpdateWordEntry(
       touch({
-        ...job,
-        sentences: job.sentences.map((sentence) =>
+        ...wordEntry,
+        sentences: wordEntry.sentences.map((sentence) =>
           sentence.id === sentenceId
             ? { ...sentence, exportEnabled: !sentence.exportEnabled }
             : sentence
@@ -98,20 +110,22 @@ export function GenerationsPane(props: {
   }
 
   function onClear() {
-    if (!job.sentences.length) return;
+    if (!wordEntry.sentences.length) return;
     const confirmed = window.confirm("Clear all sentences for this word?");
     if (!confirmed) return;
-    onChange(touch({ ...job, generations: [], generationBatches: [], sentences: [], status: "draft" }));
+    onUpdateWordEntry(
+      touch({ ...wordEntry, generations: [], generationBatches: [], sentences: [], status: "draft" })
+    );
     onClearMessages();
   }
 
   function onToggleAllExports() {
-    if (!job.sentences.length) return;
-    const allChecked = job.sentences.every((sentence) => sentence.exportEnabled);
-    onChange(
+    if (!wordEntry.sentences.length) return;
+    const allChecked = wordEntry.sentences.every((sentence) => sentence.exportEnabled);
+    onUpdateWordEntry(
       touch({
-        ...job,
-        sentences: job.sentences.map((sentence) => ({
+        ...wordEntry,
+        sentences: wordEntry.sentences.map((sentence) => ({
           ...sentence,
           exportEnabled: !allChecked,
         })),
@@ -122,18 +136,18 @@ export function GenerationsPane(props: {
   const groupedByBatch = useMemo(() => {
     type BatchGroup = {
       key: number;
-      batch?: Job["generationBatches"][number];
+      batch?: WordEntry["generationBatches"][number];
       sentences: SentenceItem[];
     };
     const grouped = new Map<number, SentenceItem[]>();
-    for (const sentence of job.sentences) {
+    for (const sentence of wordEntry.sentences) {
       const key = sentence.batchId ?? -1;
       const existing = grouped.get(key) ?? [];
       existing.push(sentence);
       grouped.set(key, existing);
     }
 
-    const ordered = [...job.generationBatches].sort((a, b) => b.id - a.id);
+    const ordered = [...wordEntry.generationBatches].sort((a, b) => b.id - a.id);
     const groups: BatchGroup[] = ordered
       .map((batch) => ({
         key: batch.id,
@@ -147,7 +161,7 @@ export function GenerationsPane(props: {
     }
 
     return groups;
-  }, [job.generationBatches, job.sentences]);
+  }, [wordEntry.generationBatches, wordEntry.sentences]);
 
   const groupedByDefinition = useMemo(() => {
 
@@ -156,7 +170,7 @@ export function GenerationsPane(props: {
       sentences: SentenceItem[];
     }>();
 
-    for (const sentence of job.sentences) {
+    for (const sentence of wordEntry.sentences) {
       const def = sentence.definitionSnapshot;
       const key = def?.index ?? -1;
       const existing = grouped.get(key) ?? { definition: def, sentences: [] };
@@ -167,16 +181,16 @@ export function GenerationsPane(props: {
     return [...grouped.entries()]
       .map(([key, value]) => ({ key, ...value }))
       .sort((a, b) => a.key - b.key);
-  }, [job.sentences]);
+  }, [wordEntry.sentences]);
 
-  const hasSentences = job.sentences.length > 0;
-  const allExportsEnabled = hasSentences && job.sentences.every((sentence) => sentence.exportEnabled);
+  const hasSentences = wordEntry.sentences.length > 0;
+  const allExportsEnabled = hasSentences && wordEntry.sentences.every((sentence) => sentence.exportEnabled);
 
   function updateSentenceCache(sentenceId: string, cache: SentenceItem["furiganaCache"]) {
-    onChange(
+    onUpdateWordEntry(
       touch({
-        ...job,
-        sentences: job.sentences.map((sentence) =>
+        ...wordEntry,
+        sentences: wordEntry.sentences.map((sentence) =>
           sentence.id === sentenceId ? { ...sentence, furiganaCache: cache } : sentence,
         ),
       }),
@@ -242,7 +256,7 @@ export function GenerationsPane(props: {
 
       <div className="paneBody" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {job.sentences.length === 0 ? (
+          {wordEntry.sentences.length === 0 ? (
             <div className="muted">No sentences yet. Click Generate Sentences.</div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

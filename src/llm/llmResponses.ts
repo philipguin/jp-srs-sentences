@@ -1,6 +1,6 @@
 import type { AppSettings } from "../settings/settingsTypes";
 import type { SentenceGeneration } from "../sentenceGen/sentenceGenTypes";
-import type { DefinitionStudyPriority, DefinitionValidity, Job } from "../wordEntry/wordEntryTypes";
+import type { DefinitionStudyPriority, DefinitionValidity, WordEntry } from "../wordEntry/wordEntryTypes";
 import { DIFFICULTY_PROFILES } from "../sentenceGen/sentenceGenDifficulty";
 import { applyTemplate } from "../shared/template";
 import Mustache from "mustache";
@@ -46,14 +46,14 @@ function extractAnyText(res: any): string | null {
 
 ////////////////////////////////////////////////////////////////
 
-function buildPromptForGenerateSentences(job: Job): string {
-  const difficulty = DIFFICULTY_PROFILES[job.difficulty];
+function buildPromptForGenerateSentences(wordEntry: WordEntry): string {
+  const difficulty = DIFFICULTY_PROFILES[wordEntry.difficulty];
   return Mustache.render(generateSentencesTemplate, {
-    word: job.word,
-    reading: job.reading,
+    word: wordEntry.word,
+    reading: wordEntry.reading,
     difficultyGuidelines: difficulty.promptGuidelines,
     maxJapaneseChars: difficulty.maxJapaneseChars,
-    definitions: job.definitions.map((d) => ({
+    definitions: wordEntry.definitions.map((d) => ({
       index: d.index,
       text: d.text,
       count: d.count,
@@ -85,16 +85,16 @@ function schemaForGenerateSentences() {
   };
 }
 
-export async function generateSentences(job: Job, settings: AppSettings): Promise<SentenceGeneration[]> {
+export async function generateSentences(wordEntry: WordEntry, settings: AppSettings): Promise<SentenceGeneration[]> {
   if (!settings.apiKey) throw new Error("Missing API key (Settings → API Key).");
   if (!settings.model) throw new Error("Missing model (Settings → Model).");
-  if (!job.word.trim()) throw new Error("Job is missing a target word.");
-  if (job.definitions.length === 0) throw new Error("Job has no parsed definitions.");
+  if (!wordEntry.word.trim()) throw new Error("Word entry is missing a target word.");
+  if (wordEntry.definitions.length === 0) throw new Error("Word entry has no parsed definitions.");
 
-  const totalNeeded = job.definitions.reduce((sum, d) => sum + (d.count || 0), 0);
+  const totalNeeded = wordEntry.definitions.reduce((sum, d) => sum + (d.count || 0), 0);
   if (totalNeeded <= 0) throw new Error("All definition counts are zero.");
 
-  const prompt = buildPromptForGenerateSentences(job);
+  const prompt = buildPromptForGenerateSentences(wordEntry);
 
   const body = {
     model: settings.model,
@@ -148,19 +148,19 @@ export async function generateSentences(job: Job, settings: AppSettings): Promis
     throw new Error("JSON did not match expected schema (items array missing).");
   }
 
-  const defsByIndex = new Map(job.definitions.map((d) => [d.index, d.text]));
-  const indicesByDefIdx = new Array(job.definitions.length);
+  const defsByIndex = new Map(wordEntry.definitions.map((d) => [d.index, d.text]));
+  const indicesByDefIdx = new Array(wordEntry.definitions.length);
 
   // Build results + compute notes via your template
   const now = Date.now();
   const results: SentenceGeneration[] = parsed.items.map((it) => {
     const meaning = defsByIndex.get(it.defIndex) ?? "";
     const notes = applyTemplate(settings.notesTemplate, {
-      word: job.word,
+      word: wordEntry.word,
       meaning,
       defIndex: String(it.defIndex),
-      reading: job.reading ?? "",
-      difficulty: job.difficulty,
+      reading: wordEntry.reading ?? "",
+      difficulty: wordEntry.difficulty,
     });
 
     const subIdx = indicesByDefIdx[it.defIndex] ?? 0;
@@ -174,7 +174,7 @@ export async function generateSentences(job: Job, settings: AppSettings): Promis
       en: it.en,
       notes,
       createdAt: now,
-      difficulty: job.difficulty,
+      difficulty: wordEntry.difficulty,
     };
   });
 
@@ -183,11 +183,11 @@ export async function generateSentences(job: Job, settings: AppSettings): Promis
 
 ////////////////////////////////////////////////////////////////
 
-function buildPromptForAnalyzeMeanings(job: Job): string {
+function buildPromptForAnalyzeMeanings(wordEntry: WordEntry): string {
   return Mustache.render(analyzeMeaningsTemplate, {
-    word: job.word,
-    reading: job.reading,
-    meanings: job.definitions.map((d) => ({
+    word: wordEntry.word,
+    reading: wordEntry.reading,
+    meanings: wordEntry.definitions.map((d) => ({
       index: d.index,
       text: d.text,
     })),
@@ -222,13 +222,13 @@ function schemaForAnalyzeMeanings() {
   };
 }
 
-export async function analyzeMeanings(job: Job, settings: AppSettings): Promise<DefinitionAnalysisItem[]> {
+export async function analyzeMeanings(wordEntry: WordEntry, settings: AppSettings): Promise<DefinitionAnalysisItem[]> {
   if (!settings.apiKey) throw new Error("Missing API key (Settings → API Key).");
   if (!settings.model) throw new Error("Missing model (Settings → Model).");
-  if (!job.word.trim()) throw new Error("Job is missing a target word.");
-  if (job.definitions.length === 0) throw new Error("Job has no parsed definitions.");
+  if (!wordEntry.word.trim()) throw new Error("Word entry is missing a target word.");
+  if (wordEntry.definitions.length === 0) throw new Error("Word entry has no parsed definitions.");
 
-  const prompt = buildPromptForAnalyzeMeanings(job);
+  const prompt = buildPromptForAnalyzeMeanings(wordEntry);
 
   const body = {
     model: settings.model,
