@@ -4,10 +4,10 @@ import { WordListPane } from "../ui/WordListPane";
 import { WordSetupPane } from "../ui/WordSetupPane";
 import { GenerationsPane } from "../ui/GenerationsPane";
 import { SettingsModal } from "../ui/SettingsModal";
-import { createEmptyJob, normalizeJob, touch, uid } from "../wordEntry/wordEntryStore";
+import { createEmptyWordEntry, normalizeWordEntry, touch, uid } from "../wordEntry/wordEntryStore";
 import type { AppSettings } from "../settings/settingsTypes";
 import type { GenerationBatch, SentenceGeneration, SentenceItem } from "../sentenceGen/sentenceGenTypes";
-import type { Job } from "../wordEntry/wordEntryTypes";
+import type { WordEntry } from "../wordEntry/wordEntryTypes";
 import { defaultSettings } from "../settings/settingsDefaults";
 import { loadPersistedState, savePersistedState } from "../app/appPersistence";
 import { analyzeMeanings, generateSentences } from "../llm/llmResponses";
@@ -16,14 +16,14 @@ import { useAnkiConnectStatus, fetchModelFieldNames, addNotes } from "../anki/an
 import { buildAnkiFieldPayload, buildAnkiTags } from "../anki/ankiExport";
 import { initKuroshiro, isKuroshiroReady } from "../kuroshiro/kuroshiroService";
 
-function pickInitialState(): { jobs: Job[]; selectedJobId: string; settings: AppSettings } {
+function pickInitialState(): { wordEntries: WordEntry[]; selectedWordEntryId: string; settings: AppSettings } {
   const persisted = loadPersistedState();
-  if (persisted && persisted.jobs.length > 0) {
+  if (persisted && persisted.wordEntries.length > 0) {
     const defaults = defaultSettings();
     const selected =
-      persisted.selectedJobId && persisted.jobs.some((j) => j.id === persisted.selectedJobId)
-        ? persisted.selectedJobId
-        : persisted.jobs[0].id;
+      persisted.selectedWordEntryId && persisted.wordEntries.some((entry) => entry.id === persisted.selectedWordEntryId)
+        ? persisted.selectedWordEntryId
+        : persisted.wordEntries[0].id;
 
     const settings: AppSettings = {
       ...defaults,
@@ -34,15 +34,15 @@ function pickInitialState(): { jobs: Job[]; selectedJobId: string; settings: App
       },
     };
 
-    return { jobs: persisted.jobs.map(normalizeJob), selectedJobId: selected, settings };
+    return { wordEntries: persisted.wordEntries.map(normalizeWordEntry), selectedWordEntryId: selected, settings };
   }
   const settings = defaultSettings();
-  const first = createEmptyJob({ difficulty: settings.defaultDifficulty });
-  return { jobs: [first], selectedJobId: first.id, settings };
+  const first = createEmptyWordEntry({ difficulty: settings.defaultDifficulty });
+  return { wordEntries: [first], selectedWordEntryId: first.id, settings };
 }
 
-function buildSentenceItem(job: Job, generation: SentenceGeneration, batchId: number): SentenceItem {
-  const definition = job.definitions.find((item) => item.index === generation.defIndex);
+function buildSentenceItem(wordEntry: WordEntry, generation: SentenceGeneration, batchId: number): SentenceItem {
+  const definition = wordEntry.definitions.find((item) => item.index === generation.defIndex);
   return {
     id: uid(),
     jp: generation.jp,
@@ -71,8 +71,8 @@ function nextBatchId(batches: GenerationBatch[]): number {
 
 export default function App() {
   const initial = useMemo(() => pickInitialState(), []);
-  const [jobs, setJobs] = useState<Job[]>(initial.jobs);
-  const [selectedJobId, setSelectedJobId] = useState<string>(initial.selectedJobId);
+  const [wordEntries, setWordEntries] = useState<WordEntry[]>(initial.wordEntries);
+  const [selectedWordEntryId, setSelectedWordEntryId] = useState<string>(initial.selectedWordEntryId);
   const [settings, setSettings] = useState<AppSettings>(initial.settings);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [generationBusy, setGenerationBusy] = useState(false);
@@ -85,12 +85,12 @@ export default function App() {
   );
   const furiganaAvailable = settings.enableFurigana && furiganaStatus === "ready";
 
-  const selectedJob = useMemo(
-    () => jobs.find((j) => j.id === selectedJobId) ?? jobs[0],
-    [jobs, selectedJobId]
+  const selectedWordEntry = useMemo(
+    () => wordEntries.find((entry) => entry.id === selectedWordEntryId) ?? wordEntries[0],
+    [wordEntries, selectedWordEntryId]
   );
 
-  // Persist whenever jobs or selection changes
+  // Persist whenever word entries or selection changes
   useEffect(() => {
     const toSave: AppSettings = {
       ...settings,
@@ -100,11 +100,11 @@ export default function App() {
 
     savePersistedState({
       version: 2,
-      jobs,
-      selectedJobId,
+      wordEntries,
+      selectedWordEntryId,
       settings: toSave,
     });
-  }, [jobs, selectedJobId, settings]);
+  }, [wordEntries, selectedWordEntryId, settings]);
 
   useEffect(() => {
     if (!settings.enableFurigana) {
@@ -145,25 +145,25 @@ export default function App() {
     return !settings.apiKey || !settings.model || !settings.ankiDeckName || !settings.ankiModelName;
   }
 
-  function onNewJob() {
-    const job = createEmptyJob({ difficulty: settings.defaultDifficulty });
-    setJobs((prev) => [job, ...prev]);
-    setSelectedJobId(job.id);
+  function onNewWordEntry() {
+    const wordEntry = createEmptyWordEntry({ difficulty: settings.defaultDifficulty });
+    setWordEntries((prev) => [wordEntry, ...prev]);
+    setSelectedWordEntryId(wordEntry.id);
   }
 
-  function onDeleteJob(id: string) {
-    setJobs((prev) => {
-      const next = prev.filter((j) => j.id !== id);
+  function onDeleteWordEntry(id: string) {
+    setWordEntries((prev) => {
+      const next = prev.filter((entry) => entry.id !== id);
 
-      // If we deleted the selected job, choose a new selection.
-      if (selectedJobId === id) {
-        setSelectedJobId(next[0]?.id ?? "");
+      // If we deleted the selected word entry, choose a new selection.
+      if (selectedWordEntryId === id) {
+        setSelectedWordEntryId(next[0]?.id ?? "");
       }
 
-      // Always keep at least one job around.
+      // Always keep at least one word entry around.
       if (next.length === 0) {
-        const created = createEmptyJob({ difficulty: settings.defaultDifficulty });
-        setSelectedJobId(created.id);
+        const created = createEmptyWordEntry({ difficulty: settings.defaultDifficulty });
+        setSelectedWordEntryId(created.id);
         return [created];
       }
 
@@ -171,62 +171,62 @@ export default function App() {
     });
   }
 
-  function onUpdateJob(updated: Job) {
-    setJobs((prev) => prev.map((j) => (j.id === updated.id ? updated : j)));
+  function onUpdateWordEntry(updated: WordEntry) {
+    setWordEntries((prev) => prev.map((entry) => (entry.id === updated.id ? updated : entry)));
   }
 
   async function onGenerate() {
-    if (!selectedJob) return;
+    if (!selectedWordEntry) return;
     setGenerationErr(null);
     setGenerationNotice(null);
     setGenerationBusy(true);
     try {
-      onUpdateJob(touch({ ...selectedJob, status: "generating" }));
+      onUpdateWordEntry(touch({ ...selectedWordEntry, status: "generating" }));
 
       const results: SentenceGeneration[] = settings.apiKey
-        ? await generateSentences(selectedJob, settings)
-        : buildMockGenerations(selectedJob, settings);
+        ? await generateSentences(selectedWordEntry, settings)
+        : buildMockGenerations(selectedWordEntry, settings);
 
       if (!settings.apiKey) {
         setGenerationNotice("No API key set — using mock results.");
       }
 
-      const batchId = nextBatchId(selectedJob.generationBatches);
+      const batchId = nextBatchId(selectedWordEntry.generationBatches);
       const batchCreatedAt = results[0]?.createdAt ?? Date.now();
       const batch: GenerationBatch = {
         id: batchId,
         createdAt: batchCreatedAt,
-        difficulty: selectedJob.difficulty,
-        definitions: selectedJob.definitions.map((definition) => ({ ...definition })),
+        difficulty: selectedWordEntry.difficulty,
+        definitions: selectedWordEntry.definitions.map((definition) => ({ ...definition })),
       };
-      const nextItems = results.map((generation) => buildSentenceItem(selectedJob, generation, batchId));
-      onUpdateJob(
+      const nextItems = results.map((generation) => buildSentenceItem(selectedWordEntry, generation, batchId));
+      onUpdateWordEntry(
         touch({
-          ...selectedJob,
+          ...selectedWordEntry,
           generations: results,
-          generationBatches: [...selectedJob.generationBatches, batch],
-          sentences: [...selectedJob.sentences, ...nextItems],
+          generationBatches: [...selectedWordEntry.generationBatches, batch],
+          sentences: [...selectedWordEntry.sentences, ...nextItems],
           status: "ready",
         })
       );
     } catch (e: any) {
       const msg = e?.message ?? String(e);
       setGenerationErr(msg);
-      onUpdateJob(touch({ ...selectedJob, status: "error" }));
+      onUpdateWordEntry(touch({ ...selectedWordEntry, status: "error" }));
     } finally {
       setGenerationBusy(false);
     }
   }
 
   async function onAnalyzeDefinitions() {
-    if (!selectedJob) return;
+    if (!selectedWordEntry) return;
     setGenerationErr(null);
     setGenerationNotice(null);
     setAnalysisBusy(true);
     try {
-      const results = await analyzeMeanings(selectedJob, settings);
+      const results = await analyzeMeanings(selectedWordEntry, settings);
       const resultsByIndex = new Map(results.map((result) => [result.meaningIndex, result]));
-      const nextDefinitions = selectedJob.definitions.map((definition) => {
+      const nextDefinitions = selectedWordEntry.definitions.map((definition) => {
         const analysis = resultsByIndex.get(definition.index);
         if (!analysis) return definition;
         return {
@@ -239,9 +239,9 @@ export default function App() {
         };
       });
 
-      onUpdateJob(
+      onUpdateWordEntry(
         touch({
-          ...selectedJob,
+          ...selectedWordEntry,
           definitions: nextDefinitions,
         })
       );
@@ -267,10 +267,10 @@ export default function App() {
       return;
     }
 
-    const exportTargets = jobs.flatMap((job) =>
-      job.sentences
+    const exportTargets = wordEntries.flatMap((wordEntry) =>
+      wordEntry.sentences
         .filter((sentence) => sentence.exportEnabled)
-        .map((sentence) => ({ job, sentence }))
+        .map((sentence) => ({ wordEntry, sentence }))
     );
 
     if (exportTargets.length === 0) {
@@ -287,21 +287,21 @@ export default function App() {
       }
 
       const fieldMapping = settings.ankiFieldMappings[settings.ankiModelName] ?? {};
-      const jobCacheUpdates = new Map<string, Job["furiganaCache"]>();
+      const wordEntryCacheUpdates = new Map<string, WordEntry["furiganaCache"]>();
       const sentenceCacheUpdates = new Map<string, SentenceItem["furiganaCache"]>();
 
       const notes = await Promise.all(
-        exportTargets.map(async ({ job, sentence }) => {
+        exportTargets.map(async ({ wordEntry, sentence }) => {
           const payload = await buildAnkiFieldPayload(
             fieldNames,
             fieldMapping,
-            job,
+            wordEntry,
             sentence,
             settings,
             furiganaAvailable,
           );
-          if (payload.jobCache && payload.jobCache !== job.furiganaCache) {
-            jobCacheUpdates.set(job.id, payload.jobCache);
+          if (payload.wordEntryCache && payload.wordEntryCache !== wordEntry.furiganaCache) {
+            wordEntryCacheUpdates.set(wordEntry.id, payload.wordEntryCache);
           }
           if (payload.sentenceCache && payload.sentenceCache !== sentence.furiganaCache) {
             sentenceCacheUpdates.set(sentence.id, payload.sentenceCache);
@@ -310,7 +310,7 @@ export default function App() {
             deckName: settings.ankiDeckName,
             modelName: settings.ankiModelName,
             fields: payload.fields,
-            tags: buildAnkiTags(settings, job, sentence),
+            tags: buildAnkiTags(settings, wordEntry, sentence),
           };
         }),
       );
@@ -331,10 +331,10 @@ export default function App() {
         }
       });
 
-      setJobs((prev) =>
-        prev.map((job) => {
+      setWordEntries((prev) =>
+        prev.map((wordEntry) => {
           let touched = false;
-          const nextSentences = job.sentences.map((sentence) => {
+          const nextSentences = wordEntry.sentences.map((sentence) => {
             const update = updates.get(sentence.id);
             const cacheUpdate = sentenceCacheUpdates.get(sentence.id);
             if (!update && !cacheUpdate) return sentence;
@@ -346,12 +346,12 @@ export default function App() {
               furiganaCache: cacheUpdate ?? sentence.furiganaCache,
             };
           });
-          const jobCache = jobCacheUpdates.get(job.id);
-          if (!touched && !jobCache) return job;
+          const wordEntryCache = wordEntryCacheUpdates.get(wordEntry.id);
+          if (!touched && !wordEntryCache) return wordEntry;
           return touch({
-            ...job,
+            ...wordEntry,
             sentences: nextSentences,
-            furiganaCache: jobCache ?? job.furiganaCache,
+            furiganaCache: wordEntryCache ?? wordEntry.furiganaCache,
           });
         })
       );
@@ -391,12 +391,12 @@ export default function App() {
       <main className="grid">
         <section className="pane">
           <WordListPane
-            jobs={jobs}
-            selectedJobId={selectedJobId}
-            onSelect={setSelectedJobId}
-            onNewJob={onNewJob}
-            onDeleteJob={onDeleteJob}
-            onUpdateJob={onUpdateJob}
+            wordEntries={wordEntries}
+            selectedWordEntryId={selectedWordEntryId}
+            onSelect={setSelectedWordEntryId}
+            onNewWordEntry={onNewWordEntry}
+            onDeleteWordEntry={onDeleteWordEntry}
+            onUpdateWordEntry={onUpdateWordEntry}
             settings={settings}
             furiganaAvailable={furiganaAvailable}
             furiganaStatus={furiganaStatus}
@@ -404,15 +404,15 @@ export default function App() {
         </section>
 
         <section className="pane">
-          {selectedJob ? (
+          {selectedWordEntry ? (
             <WordSetupPane
-              job={selectedJob}
+              wordEntry={selectedWordEntry}
               settings={settings}
               generateBusy={generationBusy}
               analyzeBusy={analysisBusy}
               onGenerate={onGenerate}
               onAnalyze={onAnalyzeDefinitions}
-              onChange={onUpdateJob}
+              onUpdateWordEntry={onUpdateWordEntry}
             />
           ) : (
             <div className="empty">No word selected.</div>
@@ -420,15 +420,15 @@ export default function App() {
         </section>
 
         <section className="pane">
-          {selectedJob ? (
+          {selectedWordEntry ? (
             <GenerationsPane
-              job={selectedJob}
+              wordEntry={selectedWordEntry}
               settings={settings}
               busy={generationBusy || exportBusy}
               err={generationErr}
               notice={generationNotice}
               onClearMessages={onClearMessages}
-              onChange={onUpdateJob}
+              onUpdateWordEntry={onUpdateWordEntry}
               furiganaAvailable={furiganaAvailable}
               furiganaStatus={furiganaStatus}
             />

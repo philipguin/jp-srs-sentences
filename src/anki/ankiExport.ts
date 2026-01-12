@@ -1,7 +1,7 @@
 import type { AnkiFieldSource } from "./ankiTypes";
 import type { AppSettings } from "../settings/settingsTypes";
 import type { SentenceItem } from "../sentenceGen/sentenceGenTypes";
-import type { Job } from "../wordEntry/wordEntryTypes";
+import type { WordEntry } from "../wordEntry/wordEntryTypes";
 import { DIFFICULTY_PROFILES } from "../sentenceGen/sentenceGenDifficulty";
 import { buildKuroshiroCacheKey, ensureKuroshiroCacheEntry } from "../kuroshiro/kuroshiroService";
 
@@ -9,8 +9,8 @@ async function resolveFuriganaValue(
   text: string,
   cacheKeyMode: AppSettings["furiganaKanaMode"],
   field: "kana" | "rubyHtml" | "anki",
-  existing: SentenceItem["furiganaCache"] | Job["furiganaCache"],
-): Promise<{ value: string; cache: SentenceItem["furiganaCache"] | Job["furiganaCache"] }> {
+  existing: SentenceItem["furiganaCache"] | WordEntry["furiganaCache"],
+): Promise<{ value: string; cache: SentenceItem["furiganaCache"] | WordEntry["furiganaCache"] }> {
   const key = buildKuroshiroCacheKey(text, cacheKeyMode);
   const normalized = existing?.key === key ? existing : { key };
   if (normalized?.[field]) {
@@ -22,31 +22,46 @@ async function resolveFuriganaValue(
 
 export async function resolveSentenceFieldValue(
   source: AnkiFieldSource,
-  job: Job,
+  wordEntry: WordEntry,
   sentence: SentenceItem,
   settings: AppSettings,
   furiganaAvailable: boolean,
-  caches: { jobCache?: Job["furiganaCache"]; sentenceCache?: SentenceItem["furiganaCache"] },
-): Promise<{ value: string; jobCache?: Job["furiganaCache"]; sentenceCache?: SentenceItem["furiganaCache"] }> {
+  caches: { wordEntryCache?: WordEntry["furiganaCache"]; sentenceCache?: SentenceItem["furiganaCache"] },
+): Promise<{ value: string; wordEntryCache?: WordEntry["furiganaCache"]; sentenceCache?: SentenceItem["furiganaCache"] }> {
   switch (source) {
     case "word":
-      return { value: job.word };
+      return { value: wordEntry.word };
     case "wordKana":
     case "reading": {
-      if (job.reading) return { value: job.reading };
-      if (!furiganaAvailable || !job.word.trim()) return { value: job.word };
-      const result = await resolveFuriganaValue(job.word, settings.furiganaKanaMode, "kana", caches.jobCache);
-      return { value: result.value, jobCache: result.cache };
+      if (wordEntry.reading) return { value: wordEntry.reading };
+      if (!furiganaAvailable || !wordEntry.word.trim()) return { value: wordEntry.word };
+      const result = await resolveFuriganaValue(
+        wordEntry.word,
+        settings.furiganaKanaMode,
+        "kana",
+        caches.wordEntryCache
+      );
+      return { value: result.value, wordEntryCache: result.cache };
     }
     case "wordFuri": {
-      if (!furiganaAvailable || !job.word.trim()) return { value: job.word };
-      const result = await resolveFuriganaValue(job.word, settings.furiganaKanaMode, "anki", caches.jobCache);
-      return { value: result.value, jobCache: result.cache };
+      if (!furiganaAvailable || !wordEntry.word.trim()) return { value: wordEntry.word };
+      const result = await resolveFuriganaValue(
+        wordEntry.word,
+        settings.furiganaKanaMode,
+        "anki",
+        caches.wordEntryCache
+      );
+      return { value: result.value, wordEntryCache: result.cache };
     }
     case "wordFuriHtml": {
-      if (!furiganaAvailable || !job.word.trim()) return { value: job.word };
-      const result = await resolveFuriganaValue(job.word, settings.furiganaKanaMode, "rubyHtml", caches.jobCache);
-      return { value: result.value, jobCache: result.cache };
+      if (!furiganaAvailable || !wordEntry.word.trim()) return { value: wordEntry.word };
+      const result = await resolveFuriganaValue(
+        wordEntry.word,
+        settings.furiganaKanaMode,
+        "rubyHtml",
+        caches.wordEntryCache
+      );
+      return { value: result.value, wordEntryCache: result.cache };
     }
     case "meaning":
       return { value: sentence.definitionSnapshot?.text ?? "" };
@@ -91,31 +106,35 @@ export async function resolveSentenceFieldValue(
 export async function buildAnkiFieldPayload(
   fieldNames: string[],
   mapping: Record<string, AnkiFieldSource>,
-  job: Job,
+  wordEntry: WordEntry,
   sentence: SentenceItem,
   settings: AppSettings,
   furiganaAvailable: boolean,
-): Promise<{ fields: Record<string, string>; jobCache?: Job["furiganaCache"]; sentenceCache?: SentenceItem["furiganaCache"] }> {
-  let jobCache = job.furiganaCache;
+): Promise<{
+  fields: Record<string, string>;
+  wordEntryCache?: WordEntry["furiganaCache"];
+  sentenceCache?: SentenceItem["furiganaCache"];
+}> {
+  let wordEntryCache = wordEntry.furiganaCache;
   let sentenceCache = sentence.furiganaCache;
 
   const fields: Record<string, string> = {};
 
   for (const fieldName of fieldNames) {
     const source = mapping[fieldName] ?? "";
-    const result = await resolveSentenceFieldValue(source, job, sentence, settings, furiganaAvailable, {
-      jobCache,
+    const result = await resolveSentenceFieldValue(source, wordEntry, sentence, settings, furiganaAvailable, {
+      wordEntryCache,
       sentenceCache,
     });
     fields[fieldName] = result.value;
-    if (result.jobCache) jobCache = result.jobCache;
+    if (result.wordEntryCache) wordEntryCache = result.wordEntryCache;
     if (result.sentenceCache) sentenceCache = result.sentenceCache;
   }
 
-  return { fields, jobCache, sentenceCache };
+  return { fields, wordEntryCache, sentenceCache };
 }
 
-export function buildAnkiTags(settings: AppSettings, job: Job, sentence: SentenceItem): string[] {
+export function buildAnkiTags(settings: AppSettings, wordEntry: WordEntry, sentence: SentenceItem): string[] {
   const baseTags = settings.ankiTags
     .split(/\s+/)
     .map((tag) => tag.trim())
@@ -124,7 +143,7 @@ export function buildAnkiTags(settings: AppSettings, job: Job, sentence: Sentenc
   const tags = [...baseTags];
 
   if (settings.ankiIncludeDifficultyTag) {
-    const difficultyKey = sentence.difficulty ?? job.difficulty;
+    const difficultyKey = sentence.difficulty ?? wordEntry.difficulty;
     if (difficultyKey) {
       tags.push(`difficulty-${difficultyKey}`);
     }

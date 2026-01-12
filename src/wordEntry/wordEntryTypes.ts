@@ -1,7 +1,7 @@
 import type { KuroshiroCache } from "../kuroshiro/kuroshiroTypes";
 import type { Difficulty, GenerationBatch, SentenceGeneration, SentenceItem } from "../sentenceGen/sentenceGenTypes";
 
-export type JobStatus = "draft" | "generating" | "ready" | "error";
+export type WordEntryStatus = "draft" | "generating" | "ready" | "error";
 
 export type DefinitionValidity = "valid" | "dubious" | "not_a_sense";
 export type DefinitionStudyPriority = "recall" | "recognize" | "ignore_for_now";
@@ -16,7 +16,7 @@ export interface DefinitionSpec {
   colocations?: string[];
 }
 
-export interface Job {
+export interface WordEntry {
   id: string;
   word: string;
   reading?: string;
@@ -27,7 +27,7 @@ export interface Job {
   generationBatches: GenerationBatch[];
   sentences: SentenceItem[];
   furiganaCache?: KuroshiroCache;
-  status: JobStatus;
+  status: WordEntryStatus;
   createdAt: number;
   updatedAt: number;
   lastError?: string;

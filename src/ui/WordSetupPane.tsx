@@ -1,22 +1,22 @@
 import { useState } from "react";
 import type { AppSettings } from "../settings/settingsTypes";
 import type { Difficulty, DifficultyProfile } from "../sentenceGen/sentenceGenTypes";
-import type { DefinitionSpec, DefinitionStudyPriority, DefinitionValidity, Job } from "../wordEntry/wordEntryTypes";
+import type { DefinitionSpec, DefinitionStudyPriority, DefinitionValidity, WordEntry } from "../wordEntry/wordEntryTypes";
 import { DIFFICULTY_PROFILES } from "../sentenceGen/sentenceGenDifficulty";
 import { touch } from "../wordEntry/wordEntryStore";
 import { applyCountPreset, mergeCounts, parseDefinitions } from "../wordEntry/wordEntryDefinitions";
 import { applyTemplate } from "../shared/template";
 
 export function WordSetupPane(props: {
-  job: Job;
+  wordEntry: WordEntry;
   settings: AppSettings;
   generateBusy: boolean;
   analyzeBusy: boolean;
   onGenerate: () => void;
   onAnalyze: () => void;
-  onChange: (job: Job) => void;
+  onUpdateWordEntry: (wordEntry: WordEntry) => void;
 }) {
-  const { job, settings, generateBusy, analyzeBusy, onGenerate, onAnalyze, onChange } = props;
+  const { wordEntry, settings, generateBusy, analyzeBusy, onGenerate, onAnalyze, onUpdateWordEntry } = props;
   const [definitionsLoading, setDefinitionsLoading] = useState(false);
 
   const validityColors: Record<DefinitionValidity, string> = { //"#aa00cc";//"#f85149";
@@ -33,11 +33,11 @@ export function WordSetupPane(props: {
   function setDefinitionsRaw(raw: string) {
     const parsed = parseDefinitions(raw);
     const withPreset = applyCountPreset(parsed, settings.defaultCountPreset);
-    const merged = mergeCounts(withPreset, job.definitions);
+    const merged = mergeCounts(withPreset, wordEntry.definitions);
 
-    onChange(
+    onUpdateWordEntry(
       touch({
-        ...job,
+        ...wordEntry,
         definitionsRaw: raw,
         definitions: merged,
         generations: [],
@@ -47,14 +47,14 @@ export function WordSetupPane(props: {
   }
 
   function setDefCount(defIndex: number, count: number) {
-    const next: DefinitionSpec[] = job.definitions.map((d) =>
+    const next: DefinitionSpec[] = wordEntry.definitions.map((d) =>
       d.index === defIndex ? { ...d, count } : d
     );
-    onChange(touch({ ...job, definitions: next }));
+    onUpdateWordEntry(touch({ ...wordEntry, definitions: next }));
   }
 
   async function populateFromJpdb() {
-    const keyword = job.word.trim();
+    const keyword = wordEntry.word.trim();
     if (!keyword) return;
     if (!settings.jpdbApiKey) {
       console.error("Missing JPDB API key (Settings → Dictionary).");
@@ -110,8 +110,8 @@ export function WordSetupPane(props: {
           <input
             className="input"
             placeholder="Word (dictionary form)"
-            value={job.word}
-            onChange={(e) => onChange(touch({ ...job, word: e.target.value }))}
+            value={wordEntry.word}
+            onChange={(e) => onUpdateWordEntry(touch({ ...wordEntry, word: e.target.value }))}
           />
         </div>
 
@@ -119,8 +119,8 @@ export function WordSetupPane(props: {
           <input
             className="input"
             placeholder="Reading (optional)"
-            value={job.reading ?? ""}
-            onChange={(e) => onChange(touch({ ...job, reading: e.target.value }))}
+            value={wordEntry.reading ?? ""}
+            onChange={(e) => onUpdateWordEntry(touch({ ...wordEntry, reading: e.target.value }))}
           />
         </div>
 
@@ -130,7 +130,7 @@ export function WordSetupPane(props: {
             className="btn secondary"
             type="button"
             onClick={populateFromJpdb}
-            disabled={!settings.jpdbApiKey || definitionsLoading || job.word.trim().length === 0}
+            disabled={!settings.jpdbApiKey || definitionsLoading || wordEntry.word.trim().length === 0}
             style={{ padding: 0 }}
           >
             <span
@@ -144,7 +144,7 @@ export function WordSetupPane(props: {
         </div>
         <textarea
           className="textarea"
-          value={job.definitionsRaw}
+          value={wordEntry.definitionsRaw}
           onChange={(e) => setDefinitionsRaw(e.target.value)}
           placeholder={"1. to ...\n2. to ...\n3. ..."}
           style={{ minHeight: 42, height: 100, resize: "vertical" }}
@@ -155,11 +155,11 @@ export function WordSetupPane(props: {
           <div className="small">Count preset: {settings.defaultCountPreset}</div>
         </div>
 
-        {job.definitions.length === 0 ? (
+        {wordEntry.definitions.length === 0 ? (
           <div className="muted">Paste definitions above to populate this list.</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {job.definitions.map((d) => (
+            {wordEntry.definitions.map((d) => (
               <div
                 key={d.index}
                 style={{
@@ -195,9 +195,9 @@ export function WordSetupPane(props: {
                       d.text +
                       "\n" +
                       applyTemplate(settings.notesTemplate, {
-                        word: job.word,
-                        reading: job.reading,
-                        difficulty: job.difficulty,
+                        word: wordEntry.word,
+                        reading: wordEntry.reading,
+                        difficulty: wordEntry.difficulty,
                         defIndex: d.index,
                         meaning: d.text,
                       })
@@ -259,12 +259,12 @@ export function WordSetupPane(props: {
           <button
             className="btn secondary"
             onClick={onAnalyze}
-            disabled={analyzeBusy || generateBusy || !job.word || job.definitions.length === 0}
+            disabled={analyzeBusy || generateBusy || !wordEntry.word || wordEntry.definitions.length === 0}
             title="Analyzes definitions for study recommendations using the configured LLM."
           >
             {analyzeBusy && "Analyzing…"}
-            {!analyzeBusy && !job.definitions?.[0]?.studyPriority && "Analyze"}
-            {!analyzeBusy && job.definitions?.[0]?.studyPriority && "Reanalyze"}
+            {!analyzeBusy && !wordEntry.definitions?.[0]?.studyPriority && "Analyze"}
+            {!analyzeBusy && wordEntry.definitions?.[0]?.studyPriority && "Reanalyze"}
           </button>
         </div>
 
@@ -274,8 +274,8 @@ export function WordSetupPane(props: {
           <label className="muted">Style</label>
           <select
             className="select"
-            value={job.difficulty}
-            onChange={(e) => onChange(touch({ ...job, difficulty: e.target.value as Difficulty }))}
+            value={wordEntry.difficulty}
+            onChange={(e) => onUpdateWordEntry(touch({ ...wordEntry, difficulty: e.target.value as Difficulty }))}
           >
             {(Object.entries(DIFFICULTY_PROFILES) as [Difficulty, DifficultyProfile][])
               .map(([diff, profile]) => (
@@ -290,7 +290,7 @@ export function WordSetupPane(props: {
           <button
             className="btn"
             onClick={onGenerate}
-            disabled={generateBusy || analyzeBusy || !job.word}
+            disabled={generateBusy || analyzeBusy || !wordEntry.word}
             title="Generates sentences for the above definitions and adds them to the right. Uses the LLM configured in Settings."
           >
             {generateBusy ? "Generating…" : "Generate"}
