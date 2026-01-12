@@ -1,5 +1,5 @@
 import type { KuroshiroCache } from "../kuroshiro/kuroshiroTypes";
-import type { Difficulty, GenerationBatch, SentenceGeneration, SentenceItem } from "../sentenceGen/sentenceGenTypes";
+import type { GenerationBatch, SentenceGeneration, SentenceItem } from "../sentenceGen/sentenceGenTypes";
 
 export type WordEntryStatus = "draft" | "generating" | "ready" | "error";
 
@@ -20,7 +20,6 @@ export interface WordEntry {
   id: string;
   word: string;
   reading?: string;
-  sentenceGenDifficulty: Difficulty;
   definitionsRaw: string;
   definitions: DefinitionSpec[];
   generations: SentenceGeneration[];

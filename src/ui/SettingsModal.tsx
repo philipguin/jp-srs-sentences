@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AnkiFieldSource } from "../anki/ankiTypes";
 import type { AppSettings } from "../settings/settingsTypes";
-import type { Difficulty } from "../sentenceGen/sentenceGenTypes";
-import { DIFFICULTY_PROFILES } from "../sentenceGen/sentenceGenDifficulty";
 import { ANKI_FIELD_OPTIONS } from "../anki/ankiFields";
 import { fetchDeckNames, fetchModelFieldNames, fetchModelNames } from "../anki/ankiConnect";
 import { validateTemplateMacros } from "../shared/template";
@@ -405,20 +403,6 @@ export function SettingsModal(props: {
 
             {activeTab === "defaults" ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <Field label="Difficulty" help="Used when creating new cards / prompts.">
-                  <select
-                    className="select"
-                    value={settings.defaultDifficulty}
-                    onChange={(e) => patch({ defaultDifficulty: e.target.value as Difficulty })}
-                  >
-                    {Object.keys(DIFFICULTY_PROFILES).map((d) => (
-                      <option key={d} value={d} title={DIFFICULTY_PROFILES[d as Difficulty].shortHelp}>
-                        {DIFFICULTY_PROFILES[d as Difficulty].label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-
                 <Field label="Sentence counts" help="Your preset string (e.g. 1/2/3).">
                   <input
                     className="input"

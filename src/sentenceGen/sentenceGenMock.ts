@@ -1,9 +1,13 @@
 import type { AppSettings } from "../settings/settingsTypes";
-import type { SentenceGeneration } from "./sentenceGenTypes";
+import type { Difficulty, SentenceGeneration } from "./sentenceGenTypes";
 import type { WordEntry } from "../wordEntry/wordEntryTypes";
 import { applyTemplate } from "../shared/template";
 
-export function buildMockGenerations(wordEntry: WordEntry, settings: AppSettings): SentenceGeneration[] {
+export function buildMockGenerations(
+  wordEntry: WordEntry,
+  settings: AppSettings,
+  difficulty: Difficulty,
+): SentenceGeneration[] {
   const now = Date.now();
   const results: SentenceGeneration[] = [];
 
@@ -15,7 +19,7 @@ export function buildMockGenerations(wordEntry: WordEntry, settings: AppSettings
         meaning: def.text,
         defIndex: String(def.index),
         reading: wordEntry.reading ?? "",
-        difficulty: wordEntry.sentenceGenDifficulty,
+        difficulty,
       });
       results.push({
         id: `mock-${def.index}-${i}-${now}`,
@@ -29,7 +33,7 @@ export function buildMockGenerations(wordEntry: WordEntry, settings: AppSettings
           : "Sample sentence for the provided definition.",
         notes,
         createdAt: now,
-        difficulty: wordEntry.sentenceGenDifficulty,
+        difficulty,
       });
     }
   }

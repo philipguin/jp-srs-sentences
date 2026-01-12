@@ -1,5 +1,5 @@
 import type { AppSettings } from "../settings/settingsTypes";
-import type { SentenceGeneration } from "../sentenceGen/sentenceGenTypes";
+import type { Difficulty, SentenceGeneration } from "../sentenceGen/sentenceGenTypes";
 import type { DefinitionStudyPriority, DefinitionValidity, WordEntry } from "../wordEntry/wordEntryTypes";
 import { DIFFICULTY_PROFILES } from "../sentenceGen/sentenceGenDifficulty";
 import { applyTemplate } from "../shared/template";
@@ -46,8 +46,8 @@ function extractAnyText(res: any): string | null {
 
 ////////////////////////////////////////////////////////////////
 
-function buildPromptForGenerateSentences(wordEntry: WordEntry): string {
-  const difficulty = DIFFICULTY_PROFILES[wordEntry.sentenceGenDifficulty];
+function buildPromptForGenerateSentences(wordEntry: WordEntry, difficultyKey: Difficulty): string {
+  const difficulty = DIFFICULTY_PROFILES[difficultyKey];
   return Mustache.render(generateSentencesTemplate, {
     word: wordEntry.word,
     reading: wordEntry.reading,
@@ -85,7 +85,11 @@ function schemaForGenerateSentences() {
   };
 }
 
-export async function generateSentences(wordEntry: WordEntry, settings: AppSettings): Promise<SentenceGeneration[]> {
+export async function generateSentences(
+  wordEntry: WordEntry,
+  settings: AppSettings,
+  difficultyKey: Difficulty,
+): Promise<SentenceGeneration[]> {
   if (!settings.apiKey) throw new Error("Missing API key (Settings → API Key).");
   if (!settings.model) throw new Error("Missing model (Settings → Model).");
   if (!wordEntry.word.trim()) throw new Error("Word entry is missing a target word.");
@@ -94,7 +98,7 @@ export async function generateSentences(wordEntry: WordEntry, settings: AppSetti
   const totalNeeded = wordEntry.definitions.reduce((sum, d) => sum + (d.count || 0), 0);
   if (totalNeeded <= 0) throw new Error("All definition counts are zero.");
 
-  const prompt = buildPromptForGenerateSentences(wordEntry);
+  const prompt = buildPromptForGenerateSentences(wordEntry, difficultyKey);
 
   const body = {
     model: settings.model,
@@ -160,7 +164,7 @@ export async function generateSentences(wordEntry: WordEntry, settings: AppSetti
       meaning,
       defIndex: String(it.defIndex),
       reading: wordEntry.reading ?? "",
-      difficulty: wordEntry.sentenceGenDifficulty,
+      difficulty: difficultyKey,
     });
 
     const subIdx = indicesByDefIdx[it.defIndex] ?? 0;
@@ -174,7 +178,7 @@ export async function generateSentences(wordEntry: WordEntry, settings: AppSetti
       en: it.en,
       notes,
       createdAt: now,
-      difficulty: wordEntry.sentenceGenDifficulty,
+      difficulty: difficultyKey,
     };
   });
 

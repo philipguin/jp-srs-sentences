@@ -11,7 +11,6 @@ export function defaultSettings(): AppSettings {
 
     notesTemplate: "{word} here means “{meaning}”.",
 
-    defaultDifficulty: "beginner",
     defaultCountPreset: "1",
 
     ankiDeckName: "",

@@ -1,5 +1,4 @@
 import type { AnkiFieldSource } from "../anki/ankiTypes";
-import type { Difficulty } from "../sentenceGen/sentenceGenTypes";
 export type KanaMode = "hiragana" | "katakana";
 
 
@@ -13,7 +12,6 @@ export interface AppSettings {
 
   notesTemplate: string;
 
-  defaultDifficulty: Difficulty;
   defaultCountPreset: string;
 
   ankiDeckName: string;
