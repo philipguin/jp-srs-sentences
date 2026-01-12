@@ -4,15 +4,17 @@ import { WordListPane } from "./components/WordListPane";
 import { WordSetupPane } from "./components/WordSetupPane";
 import { GenerationsPane } from "./components/GenerationsPane";
 import { SettingsModal } from "./components/SettingsModal";
-import { createEmptyJob, normalizeJob, touch, uid } from "./state/store";
-import type { AppSettings, GenerationBatch, Job, SentenceGeneration, SentenceItem } from "./state/types";
-import { defaultSettings } from "./state/defaults";
-import { loadPersistedState, savePersistedState } from "./state/persistence";
-import { analyzeMeanings, generateSentences } from "./lib/openaiResponses";
-import { buildMockGenerations } from "./lib/mockGeneration";
-import { useAnkiConnectStatus, fetchModelFieldNames, addNotes } from "./lib/ankiConnect";
-import { buildAnkiFieldPayload, buildAnkiTags } from "./lib/ankiExport";
-import { initFurigana, isFuriganaReady } from "./lib/furigana";
+import { createEmptyJob, normalizeJob, touch, uid } from "./wordEntry/wordEntryStore";
+import type { AppSettings } from "./settings/settingsTypes";
+import type { GenerationBatch, SentenceGeneration, SentenceItem } from "./sentenceGen/sentenceGenTypes";
+import type { Job } from "./wordEntry/wordEntryTypes";
+import { defaultSettings } from "./settings/settingsDefaults";
+import { loadPersistedState, savePersistedState } from "./app/appPersistence";
+import { analyzeMeanings, generateSentences } from "./llm/llmResponses";
+import { buildMockGenerations } from "./sentenceGen/sentenceGenMock";
+import { useAnkiConnectStatus, fetchModelFieldNames, addNotes } from "./anki/ankiConnect";
+import { buildAnkiFieldPayload, buildAnkiTags } from "./anki/ankiExport";
+import { initFurigana, isFuriganaReady } from "./furigana/furiganaService";
 
 function pickInitialState(): { jobs: Job[]; selectedJobId: string; settings: AppSettings } {
   const persisted = loadPersistedState();

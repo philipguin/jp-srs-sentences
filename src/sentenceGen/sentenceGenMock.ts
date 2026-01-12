@@ -1,5 +1,7 @@
-import type { AppSettings, Job, SentenceGeneration } from "../state/types";
-import { applyTemplate } from "./template";
+import type { AppSettings } from "../settings/settingsTypes";
+import type { SentenceGeneration } from "./sentenceGenTypes";
+import type { Job } from "../wordEntry/wordEntryTypes";
+import { applyTemplate } from "../shared/template";
 
 export function buildMockGenerations(job: Job, settings: AppSettings): SentenceGeneration[] {
   const now = Date.now();

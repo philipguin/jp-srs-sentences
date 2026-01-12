@@ -1,4 +1,4 @@
-import type { Difficulty, DifficultyProfile } from "../state/types"
+import type { Difficulty, DifficultyProfile } from "./sentenceGenTypes"
 
 export const DIFFICULTY_PROFILES: Record<Difficulty, DifficultyProfile> = {
   "intro": {

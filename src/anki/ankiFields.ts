@@ -1,4 +1,4 @@
-import type { AnkiFieldSource } from "../state/types";
+import type { AnkiFieldSource } from "./ankiTypes";
 
 export const ANKI_FIELD_OPTIONS: Array<{ value: AnkiFieldSource; label: string }> = [
   { value: "", label: "(Nothing)" },

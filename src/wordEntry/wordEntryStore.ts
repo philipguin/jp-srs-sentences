@@ -1,4 +1,5 @@
-import type { Difficulty, Job } from "./types";
+import type { Difficulty } from "../sentenceGen/sentenceGenTypes";
+import type { Job } from "./wordEntryTypes";
 
 export function uid(): string {
   return Math.random().toString(16).slice(2) + Date.now().toString(16);

@@ -1,4 +1,4 @@
-import type { AppSettings } from "./types";
+import type { AppSettings } from "./settingsTypes";
 
 export function defaultSettings(): AppSettings {
   return {

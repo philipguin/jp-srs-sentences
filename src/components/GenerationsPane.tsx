@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import type { AppSettings, Job, SentenceItem } from "../state/types";
-import { DIFFICULTY_PROFILES } from "../state/difficulty";
-import { touch } from "../state/store";
-import { buildFuriganaCacheKey, ensureFuriganaCacheEntry } from "../lib/furigana";
+import type { AppSettings } from "../settings/settingsTypes";
+import type { Job } from "../wordEntry/wordEntryTypes";
+import type { SentenceItem } from "../sentenceGen/sentenceGenTypes";
+import { DIFFICULTY_PROFILES } from "../sentenceGen/sentenceGenDifficulty";
+import { touch } from "../wordEntry/wordEntryStore";
+import { buildFuriganaCacheKey, ensureFuriganaCacheEntry } from "../furigana/furiganaService";
 
 type DisplayMode = "natural" | "furigana" | "kana";
 

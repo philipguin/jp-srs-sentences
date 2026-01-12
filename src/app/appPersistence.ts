@@ -1,4 +1,5 @@
-import type { Job, AppSettings } from "./types";
+import type { AppSettings } from "../settings/settingsTypes";
+import type { Job } from "../wordEntry/wordEntryTypes";
 
 const STORAGE_KEY = "jp-srs-sentences:v2";
 

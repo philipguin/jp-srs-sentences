@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import type { AppSettings, Job } from "../state/types";
-import { buildFuriganaCacheKey, ensureFuriganaCacheEntry } from "../lib/furigana";
+import type { AppSettings } from "../settings/settingsTypes";
+import type { Job } from "../wordEntry/wordEntryTypes";
+import { buildFuriganaCacheKey, ensureFuriganaCacheEntry } from "../furigana/furiganaService";
 
 type DisplayMode = "natural" | "furigana" | "kana";
 

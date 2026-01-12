@@ -1,14 +1,6 @@
 import Kuroshiro from "kuroshiro";
 import KuromojiAnalyzer from "@sglkc/kuroshiro-analyzer-kuromoji";
-
-export type FuriganaMode = "hiragana" | "katakana";
-
-export type FuriganaCache = {
-  key: string;
-  kana?: string;
-  rubyHtml?: string;
-  anki?: string;
-};
+import type { FuriganaCache, FuriganaMode } from "./furiganaTypes";
 
 const PARSER_ID = "kuroshiro+kuromoji-ipadic";
 const PARSER_VERSION = "1";

@@ -1,6 +1,8 @@
-import type { AppSettings, Job, SentenceGeneration, DefinitionValidity, DefinitionStudyPriority } from "../state/types";
-import { DIFFICULTY_PROFILES } from "../state/difficulty";
-import { applyTemplate } from "./template";
+import type { AppSettings } from "../settings/settingsTypes";
+import type { SentenceGeneration } from "../sentenceGen/sentenceGenTypes";
+import type { DefinitionStudyPriority, DefinitionValidity, Job } from "../wordEntry/wordEntryTypes";
+import { DIFFICULTY_PROFILES } from "../sentenceGen/sentenceGenDifficulty";
+import { applyTemplate } from "../shared/template";
 import Mustache from "mustache";
 import generateSentencesTemplate from "../prompts/generateSentences.mustache?raw";
 import analyzeMeaningsTemplate from "../prompts/analyzeMeanings.mustache?raw";

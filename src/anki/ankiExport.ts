@@ -1,6 +1,9 @@
-import type { AppSettings, AnkiFieldSource, Job, SentenceItem } from "../state/types";
-import { DIFFICULTY_PROFILES } from "../state/difficulty";
-import { buildFuriganaCacheKey, ensureFuriganaCacheEntry } from "./furigana";
+import type { AnkiFieldSource } from "./ankiTypes";
+import type { AppSettings } from "../settings/settingsTypes";
+import type { SentenceItem } from "../sentenceGen/sentenceGenTypes";
+import type { Job } from "../wordEntry/wordEntryTypes";
+import { DIFFICULTY_PROFILES } from "../sentenceGen/sentenceGenDifficulty";
+import { buildFuriganaCacheKey, ensureFuriganaCacheEntry } from "../furigana/furiganaService";
 
 async function resolveFuriganaValue(
   text: string,
