@@ -6,7 +6,7 @@ import { GenerationsPane } from "../ui/GenerationsPane";
 import { SettingsModal } from "../ui/SettingsModal";
 import { createEmptyWordEntry, normalizeWordEntry, touch, uid } from "../wordEntry/wordEntryStore";
 import type { AppSettings } from "../settings/settingsTypes";
-import type { GenerationBatch, SentenceGeneration, SentenceItem } from "../sentenceGen/sentenceGenTypes";
+import type { Difficulty, GenerationBatch, SentenceGeneration, SentenceItem } from "../sentenceGen/sentenceGenTypes";
 import type { WordEntry } from "../wordEntry/wordEntryTypes";
 import { defaultSettings } from "../settings/settingsDefaults";
 import { loadPersistedState, savePersistedState } from "../app/appPersistence";
@@ -16,7 +16,12 @@ import { useAnkiConnectStatus, fetchModelFieldNames, addNotes } from "../anki/an
 import { buildAnkiFieldPayload, buildAnkiTags } from "../anki/ankiExport";
 import { initKuroshiro, isKuroshiroReady } from "../kuroshiro/kuroshiroService";
 
-function pickInitialState(): { wordEntries: WordEntry[]; selectedWordEntryId: string; settings: AppSettings } {
+function pickInitialState(): {
+  wordEntries: WordEntry[];
+  selectedWordEntryId: string;
+  settings: AppSettings;
+  sentenceGenDifficulty: Difficulty;
+} {
   const persisted = loadPersistedState();
   if (persisted && persisted.wordEntries.length > 0) {
     const defaults = defaultSettings();
@@ -34,11 +39,17 @@ function pickInitialState(): { wordEntries: WordEntry[]; selectedWordEntryId: st
       },
     };
 
-    return { wordEntries: persisted.wordEntries.map(normalizeWordEntry), selectedWordEntryId: selected, settings };
+    return {
+      wordEntries: persisted.wordEntries.map(normalizeWordEntry),
+      selectedWordEntryId: selected,
+      settings,
+      sentenceGenDifficulty: persisted.sentenceGenDifficulty,
+    };
   }
   const settings = defaultSettings();
-  const first = createEmptyWordEntry({ sentenceGenDifficulty: settings.defaultDifficulty });
-  return { wordEntries: [first], selectedWordEntryId: first.id, settings };
+  const sentenceGenDifficulty: Difficulty = "beginner";
+  const first = createEmptyWordEntry();
+  return { wordEntries: [first], selectedWordEntryId: first.id, settings, sentenceGenDifficulty };
 }
 
 function buildSentenceItem(wordEntry: WordEntry, generation: SentenceGeneration, batchId: number): SentenceItem {
@@ -74,6 +85,7 @@ export default function App() {
   const [wordEntries, setWordEntries] = useState<WordEntry[]>(initial.wordEntries);
   const [selectedWordEntryId, setSelectedWordEntryId] = useState<string>(initial.selectedWordEntryId);
   const [settings, setSettings] = useState<AppSettings>(initial.settings);
+  const [sentenceGenDifficulty, setSentenceGenDifficulty] = useState<Difficulty>(initial.sentenceGenDifficulty);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [generationBusy, setGenerationBusy] = useState(false);
   const [analysisBusy, setAnalysisBusy] = useState(false);
@@ -103,8 +115,9 @@ export default function App() {
       wordEntries,
       selectedWordEntryId,
       settings: toSave,
+      sentenceGenDifficulty,
     });
-  }, [wordEntries, selectedWordEntryId, settings]);
+  }, [wordEntries, selectedWordEntryId, settings, sentenceGenDifficulty]);
 
   useEffect(() => {
     if (!settings.enableFurigana) {
@@ -146,7 +159,7 @@ export default function App() {
   }
 
   function onNewWordEntry() {
-    const wordEntry = createEmptyWordEntry({ sentenceGenDifficulty: settings.defaultDifficulty });
+    const wordEntry = createEmptyWordEntry();
     setWordEntries((prev) => [wordEntry, ...prev]);
     setSelectedWordEntryId(wordEntry.id);
   }
@@ -162,7 +175,7 @@ export default function App() {
 
       // Always keep at least one word entry around.
       if (next.length === 0) {
-        const created = createEmptyWordEntry({ sentenceGenDifficulty: settings.defaultDifficulty });
+        const created = createEmptyWordEntry();
         setSelectedWordEntryId(created.id);
         return [created];
       }
@@ -184,8 +197,8 @@ export default function App() {
       onUpdateWordEntry(touch({ ...selectedWordEntry, status: "generating" }));
 
       const results: SentenceGeneration[] = settings.apiKey
-        ? await generateSentences(selectedWordEntry, settings)
-        : buildMockGenerations(selectedWordEntry, settings);
+        ? await generateSentences(selectedWordEntry, settings, sentenceGenDifficulty)
+        : buildMockGenerations(selectedWordEntry, settings, sentenceGenDifficulty);
 
       if (!settings.apiKey) {
         setGenerationNotice("No API key set — using mock results.");
@@ -196,7 +209,7 @@ export default function App() {
       const batch: GenerationBatch = {
         id: batchId,
         createdAt: batchCreatedAt,
-        difficulty: selectedWordEntry.sentenceGenDifficulty,
+        difficulty: sentenceGenDifficulty,
         definitions: selectedWordEntry.definitions.map((definition) => ({ ...definition })),
       };
       const nextItems = results.map((generation) => buildSentenceItem(selectedWordEntry, generation, batchId));
@@ -310,7 +323,7 @@ export default function App() {
             deckName: settings.ankiDeckName,
             modelName: settings.ankiModelName,
             fields: payload.fields,
-            tags: buildAnkiTags(settings, wordEntry, sentence),
+            tags: buildAnkiTags(settings, sentence, sentenceGenDifficulty),
           };
         }),
       );
@@ -408,10 +421,12 @@ export default function App() {
             <WordSetupPane
               wordEntry={selectedWordEntry}
               settings={settings}
+              sentenceGenDifficulty={sentenceGenDifficulty}
               generateBusy={generationBusy}
               analyzeBusy={analysisBusy}
               onGenerate={onGenerate}
               onAnalyze={onAnalyzeDefinitions}
+              onDifficultyChange={setSentenceGenDifficulty}
               onUpdateWordEntry={onUpdateWordEntry}
             />
           ) : (

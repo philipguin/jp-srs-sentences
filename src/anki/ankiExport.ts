@@ -134,7 +134,11 @@ export async function buildAnkiFieldPayload(
   return { fields, wordEntryCache, sentenceCache };
 }
 
-export function buildAnkiTags(settings: AppSettings, wordEntry: WordEntry, sentence: SentenceItem): string[] {
+export function buildAnkiTags(
+  settings: AppSettings,
+  sentence: SentenceItem,
+  fallbackDifficulty: SentenceItem["difficulty"],
+): string[] {
   const baseTags = settings.ankiTags
     .split(/\s+/)
     .map((tag) => tag.trim())
@@ -143,7 +147,7 @@ export function buildAnkiTags(settings: AppSettings, wordEntry: WordEntry, sente
   const tags = [...baseTags];
 
   if (settings.ankiIncludeDifficultyTag) {
-    const difficultyKey = sentence.difficulty ?? wordEntry.sentenceGenDifficulty;
+    const difficultyKey = sentence.difficulty ?? fallbackDifficulty;
     if (difficultyKey) {
       tags.push(`difficulty-${difficultyKey}`);
     }

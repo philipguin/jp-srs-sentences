@@ -9,6 +9,7 @@ export interface PersistedStateV2 {
   selectedWordEntryId?: string;
   wordEntries: WordEntry[];
   settings: AppSettings;
+  sentenceGenDifficulty: Difficulty;
 }
 
 export function loadPersistedState(): PersistedStateV2 | null {
@@ -18,31 +19,24 @@ export function loadPersistedState(): PersistedStateV2 | null {
       const parsed = JSON.parse(rawV2) as PersistedStateV2 & {
         jobs?: WordEntry[];
         selectedJobId?: string;
+        sentenceGenDifficulty?: Difficulty;
+        settings?: AppSettings & { defaultDifficulty?: Difficulty };
       };
       if (parsed?.version === 2 && parsed.settings) {
+        const sentenceGenDifficulty =
+          parsed.sentenceGenDifficulty ?? parsed.settings.defaultDifficulty ?? "beginner";
+        const { defaultDifficulty: _legacyDefaultDifficulty, ...settings } = parsed.settings;
         if (Array.isArray(parsed.wordEntries)) {
-          const wordEntries = parsed.wordEntries.map((entry) => {
-            const { difficulty: legacyDifficulty, ...rest } = entry as WordEntry & { difficulty?: Difficulty };
-            return {
-              ...rest,
-              sentenceGenDifficulty: entry.sentenceGenDifficulty ?? legacyDifficulty,
-            };
-          });
-          return { ...parsed, wordEntries };
+          return { ...parsed, sentenceGenDifficulty, settings };
         }
         if (Array.isArray(parsed.jobs)) {
-          const wordEntries = parsed.jobs.map((entry) => {
-            const { difficulty: legacyDifficulty, ...rest } = entry as WordEntry & { difficulty?: Difficulty };
-            return {
-              ...rest,
-              sentenceGenDifficulty: entry.sentenceGenDifficulty ?? legacyDifficulty,
-            };
-          });
+          const wordEntries = parsed.jobs;
           return {
             version: 2,
             wordEntries,
             selectedWordEntryId: parsed.selectedJobId,
-            settings: parsed.settings,
+            settings,
+            sentenceGenDifficulty,
           };
         }
       }

@@ -10,13 +10,25 @@ import { applyTemplate } from "../shared/template";
 export function WordSetupPane(props: {
   wordEntry: WordEntry;
   settings: AppSettings;
+  sentenceGenDifficulty: Difficulty;
   generateBusy: boolean;
   analyzeBusy: boolean;
   onGenerate: () => void;
   onAnalyze: () => void;
+  onDifficultyChange: (difficulty: Difficulty) => void;
   onUpdateWordEntry: (wordEntry: WordEntry) => void;
 }) {
-  const { wordEntry, settings, generateBusy, analyzeBusy, onGenerate, onAnalyze, onUpdateWordEntry } = props;
+  const {
+    wordEntry,
+    settings,
+    sentenceGenDifficulty,
+    generateBusy,
+    analyzeBusy,
+    onGenerate,
+    onAnalyze,
+    onDifficultyChange,
+    onUpdateWordEntry,
+  } = props;
   const [definitionsLoading, setDefinitionsLoading] = useState(false);
 
   const validityColors: Record<DefinitionValidity, string> = { //"#aa00cc";//"#f85149";
@@ -197,7 +209,7 @@ export function WordSetupPane(props: {
                       applyTemplate(settings.notesTemplate, {
                         word: wordEntry.word,
                         reading: wordEntry.reading,
-                        difficulty: wordEntry.sentenceGenDifficulty,
+                        difficulty: sentenceGenDifficulty,
                         defIndex: d.index,
                         meaning: d.text,
                       })
@@ -274,10 +286,8 @@ export function WordSetupPane(props: {
           <label className="muted">Style</label>
           <select
             className="select"
-            value={wordEntry.sentenceGenDifficulty}
-            onChange={(e) =>
-              onUpdateWordEntry(touch({ ...wordEntry, sentenceGenDifficulty: e.target.value as Difficulty }))
-            }
+            value={sentenceGenDifficulty}
+            onChange={(e) => onDifficultyChange(e.target.value as Difficulty)}
           >
             {(Object.entries(DIFFICULTY_PROFILES) as [Difficulty, DifficultyProfile][])
               .map(([diff, profile]) => (
