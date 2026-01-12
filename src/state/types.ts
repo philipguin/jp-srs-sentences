@@ -13,10 +13,17 @@ export type DifficultyProfile = {
 
 export type JobStatus = "draft" | "generating" | "ready" | "error";
 
+export type DefinitionValidity = "valid" | "dubious" | "not_a_sense";
+export type DefinitionStudyPriority = "recall" | "recognize" | "ignore_for_now";
+
 export interface DefinitionSpec {
   index: number;
   text: string;
   count: number;
+  validity?: DefinitionValidity;
+  studyPriority?: DefinitionStudyPriority;
+  comment?: string;
+  colocations?: string[];
 }
 
 export interface GenerationBatch {
@@ -111,8 +118,6 @@ export interface AppSettings {
 
   enableFurigana: boolean;
   furiganaKanaMode: FuriganaMode;
-
-  // We'll add prompt templates + AnkiConnect later.
 }
 
 export interface SentenceGeneration {

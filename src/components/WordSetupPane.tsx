@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Job, Difficulty, DifficultyProfile, DefinitionSpec, AppSettings } from "../state/types";
+import type { Job, Difficulty, DifficultyProfile, DefinitionSpec, AppSettings, DefinitionValidity, DefinitionStudyPriority } from "../state/types";
 import { DIFFICULTY_PROFILES } from "../state/difficulty";
 import { touch } from "../state/store";
 import { applyCountPreset, mergeCounts, parseDefinitions } from "../lib/parseDefinitions";
@@ -8,12 +8,25 @@ import { applyTemplate } from "../lib/template";
 export function WordSetupPane(props: {
   job: Job;
   settings: AppSettings;
-  busy: boolean;
+  generateBusy: boolean;
+  analyzeBusy: boolean;
   onGenerate: () => void;
+  onAnalyze: () => void;
   onChange: (job: Job) => void;
 }) {
-  const { job, settings, busy, onGenerate, onChange } = props;
+  const { job, settings, generateBusy, analyzeBusy, onGenerate, onAnalyze, onChange } = props;
   const [definitionsLoading, setDefinitionsLoading] = useState(false);
+
+  const validityColors: Record<DefinitionValidity, string> = { //"#aa00cc";//"#f85149";
+    valid: "",
+    dubious: "#c084fc",
+    not_a_sense: "#f87171",
+  };
+  const studyPriorityColors: Record<DefinitionStudyPriority, string> = {
+    recall: "#55d383",//"#4ade80",//"#3fb950",
+    recognize: "#79b5ff",//"#e3b341",
+    ignore_for_now: "#c5b975",//"#9ca3af",//"#866",
+  };
 
   function setDefinitionsRaw(raw: string) {
     const parsed = parseDefinitions(raw);
@@ -109,22 +122,6 @@ export function WordSetupPane(props: {
           />
         </div>
 
-        <div className="row">
-          <select
-            className="select"
-            value={job.difficulty}
-            onChange={(e) => onChange(touch({ ...job, difficulty: e.target.value as Difficulty }))}
-          >
-            {(Object.entries(DIFFICULTY_PROFILES) as [Difficulty, DifficultyProfile][])
-              .map(([diff, profile]) => (
-                <option key={diff} value={diff} title={profile.shortHelp}>
-                  {profile.label}
-                </option>
-              ))
-            }
-          </select>
-        </div>
-
         <div className="row" style={{ justifyContent: "space-between", alignItems: "end" }}>
           <div className="muted">Definitions (paste numbered lines like “1. …” “2. …”)</div>
           <button
@@ -169,7 +166,7 @@ export function WordSetupPane(props: {
                   padding: 6,
                   background: "#0f1115",
                   display: "flex",
-                  alignItems: "center",
+                  alignItems: "start",
                   gap: 10,
                 }}
               >
@@ -185,37 +182,63 @@ export function WordSetupPane(props: {
                   #{d.index}
                 </div>
 
-                <div
-                  style={{
-                    flex: 1,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                  title={
-                    d.text +
-                    "\n" +
-                    applyTemplate(settings.notesTemplate, {
-                      word: job.word,
-                      reading: job.reading,
-                      difficulty: job.difficulty,
-                      defIndex: d.index,
-                      meaning: d.text,
-                    })
-                  }
-                >
-                  {d.text}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                    title={
+                      d.text +
+                      "\n" +
+                      applyTemplate(settings.notesTemplate, {
+                        word: job.word,
+                        reading: job.reading,
+                        difficulty: job.difficulty,
+                        defIndex: d.index,
+                        meaning: d.text,
+                      })
+                    }
+                  >
+                    {d.text}
+                  </div>
+                  {(d.validity && d.validity != "valid" || d.studyPriority || d.comment || (d.colocations?.length ?? 0) > 0) ? (
+                    <div style={{ display: "flex", gap: "2px 8px", flexWrap: "wrap", fontSize: 12, marginTop: 2 }}>
+                      {d.validity && d.validity != "valid" ? (
+                        <span style={{
+                          color: validityColors[d.validity as DefinitionValidity],
+                          fontWeight: 600
+                        }}>
+                          {d.validity.replaceAll('_', ' ')}
+                        </span>
+                      ) : d.studyPriority ? (
+                        <span style={{
+                          color: studyPriorityColors[d.studyPriority as DefinitionStudyPriority],
+                          fontWeight: 600
+                        }}>
+                          {d.studyPriority.replaceAll('_', ' ')}
+                        </span>
+                      ) : null}
+                      {d.comment ? <span style={{ opacity: 0.7 }}>{d.comment}</span> : null}
+                      {(d.colocations?.length ?? 0) > 0 ? (
+                        <span style={{ opacity: 0.7 }}>
+                          Colocations: {d.colocations?.join(", ")}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
 
                 <input
                   className="input"
                   type="number"
-                  min={1}
+                  min={0}
                   step={1}
                   value={d.count}
                   onChange={(e) => {
                     const n = Number(e.target.value);
-                    setDefCount(d.index, Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1);
+                    setDefCount(d.index, Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0);
                   }}
                   style={{
                     maxWidth: 32,
@@ -229,11 +252,49 @@ export function WordSetupPane(props: {
             ))}
           </div>
         )}
-        <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 4 }}>
-          <button className="btn" onClick={onGenerate} disabled={busy} title="Generates sentences for the above definitions and adds them to the right. Uses the LLM configured in Settings.">
-            {busy ? "Generating…" : "Generate Sentences"}
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, paddingTop: 4 }}>
+          <button
+            className="btn secondary"
+            onClick={onAnalyze}
+            disabled={analyzeBusy || generateBusy || !job.word || job.definitions.length === 0}
+            title="Analyzes definitions for study recommendations using the configured LLM."
+          >
+            {analyzeBusy && "Analyzing…"}
+            {!analyzeBusy && !job.definitions?.[0]?.studyPriority && "Analyze"}
+            {!analyzeBusy && job.definitions?.[0]?.studyPriority && "Reanalyze"}
           </button>
         </div>
+
+        <div className="muted">Sentence Generation</div>
+
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, paddingTop: 0 }}>
+          <label className="muted">Style</label>
+          <select
+            className="select"
+            value={job.difficulty}
+            onChange={(e) => onChange(touch({ ...job, difficulty: e.target.value as Difficulty }))}
+          >
+            {(Object.entries(DIFFICULTY_PROFILES) as [Difficulty, DifficultyProfile][])
+              .map(([diff, profile]) => (
+                <option key={diff} value={diff} title={profile.shortHelp}>
+                  {profile.label}
+                </option>
+              ))
+            }
+          </select>
+        </div>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, paddingTop: 0 }}>
+          <button
+            className="btn"
+            onClick={onGenerate}
+            disabled={generateBusy || analyzeBusy || !job.word}
+            title="Generates sentences for the above definitions and adds them to the right. Uses the LLM configured in Settings."
+          >
+            {generateBusy ? "Generating…" : "Generate"}
+          </button>
+        </div>
+
       </div>
     </div>
   );

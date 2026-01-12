@@ -68,11 +68,18 @@ export function mergeCounts(
   nextDefs: DefinitionSpec[],
   prevDefs: DefinitionSpec[]
 ): DefinitionSpec[] {
-  const prevByIndex = new Map<number, number>();
-  for (const d of prevDefs) prevByIndex.set(d.index, d.count);
+  const prevByIndex = new Map<number, DefinitionSpec>();
+  for (const d of prevDefs) prevByIndex.set(d.index, d);
 
-  return nextDefs.map((d) => ({
-    ...d,
-    count: prevByIndex.get(d.index) ?? d.count,
-  }));
+  return nextDefs.map((d) => {
+    const prev = prevByIndex.get(d.index);
+    return {
+      ...d,
+      count: prev?.count ?? d.count,
+      validity: prev?.validity,
+      studyPriority: prev?.studyPriority,
+      comment: prev?.comment,
+      colocations: prev?.colocations,
+    };
+  });
 }

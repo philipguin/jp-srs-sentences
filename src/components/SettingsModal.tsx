@@ -410,8 +410,8 @@ export function SettingsModal(props: {
                     onChange={(e) => patch({ defaultDifficulty: e.target.value as Difficulty })}
                   >
                     {Object.keys(DIFFICULTY_PROFILES).map((d) => (
-                      <option key={d} value={d} title={DIFFICULTY_PROFILES[d].shortHelp}>
-                        {DIFFICULTY_PROFILES[d].label}
+                      <option key={d} value={d} title={DIFFICULTY_PROFILES[d as Difficulty].shortHelp}>
+                        {DIFFICULTY_PROFILES[d as Difficulty].label}
                       </option>
                     ))}
                   </select>
@@ -584,7 +584,7 @@ export function SettingsModal(props: {
                                   color: currentFieldMapping[field] ? "" : "#777"
                                 }}
                               >
-                                {ANKI_FIELD_OPTIONS.map((option, index) => (
+                                {ANKI_FIELD_OPTIONS.map((option) => (
                                   <option key={`${field}-${option.value}`} value={option.value} style={{
                                     color: option.value ? "#eee" : "#777"
                                   }}>

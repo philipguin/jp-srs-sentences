@@ -8,9 +8,9 @@ import { createEmptyJob, normalizeJob, touch, uid } from "./state/store";
 import type { AppSettings, GenerationBatch, Job, SentenceGeneration, SentenceItem } from "./state/types";
 import { defaultSettings } from "./state/defaults";
 import { loadPersistedState, savePersistedState } from "./state/persistence";
-import { generateSentences } from "./lib/openaiResponses";
+import { analyzeMeanings, generateSentences } from "./lib/openaiResponses";
 import { buildMockGenerations } from "./lib/mockGeneration";
-import { addNotes, fetchModelFieldNames } from "./lib/ankiConnect";
+import { useAnkiConnectStatus, fetchModelFieldNames, addNotes } from "./lib/ankiConnect";
 import { buildAnkiFieldPayload, buildAnkiTags } from "./lib/ankiExport";
 import { initFurigana, isFuriganaReady } from "./lib/furigana";
 
@@ -74,6 +74,7 @@ export default function App() {
   const [settings, setSettings] = useState<AppSettings>(initial.settings);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [generationBusy, setGenerationBusy] = useState(false);
+  const [analysisBusy, setAnalysisBusy] = useState(false);
   const [exportBusy, setExportBusy] = useState(false);
   const [generationErr, setGenerationErr] = useState<string | null>(null);
   const [generationNotice, setGenerationNotice] = useState<string | null>(null);
@@ -132,6 +133,15 @@ export default function App() {
     };
   }, [settings.enableFurigana]);
 
+  const anki = useAnkiConnectStatus({
+    enabled: true, // or "settings modal open"
+    onlineIntervalMs: 5000,
+    offlineIntervalMs: 3000,
+  });
+
+  function doSettingsNeedAttention(): boolean {
+    return !settings.apiKey || !settings.model || !settings.ankiDeckName || !settings.ankiModelName;
+  }
 
   function onNewJob() {
     const job = createEmptyJob({ difficulty: settings.defaultDifficulty });
@@ -203,6 +213,41 @@ export default function App() {
       onUpdateJob(touch({ ...selectedJob, status: "error" }));
     } finally {
       setGenerationBusy(false);
+    }
+  }
+
+  async function onAnalyzeDefinitions() {
+    if (!selectedJob) return;
+    setGenerationErr(null);
+    setGenerationNotice(null);
+    setAnalysisBusy(true);
+    try {
+      const results = await analyzeMeanings(selectedJob, settings);
+      const resultsByIndex = new Map(results.map((result) => [result.meaningIndex, result]));
+      const nextDefinitions = selectedJob.definitions.map((definition) => {
+        const analysis = resultsByIndex.get(definition.index);
+        if (!analysis) return definition;
+        return {
+          ...definition,
+          validity: analysis.validity,
+          studyPriority: analysis.studyPriority,
+          comment: analysis.comment,
+          colocations: analysis.colocations,
+          count: definition.count,
+        };
+      });
+
+      onUpdateJob(
+        touch({
+          ...selectedJob,
+          definitions: nextDefinitions,
+        })
+      );
+    } catch (e: any) {
+      const msg = e?.message ?? String(e);
+      setGenerationErr(msg);
+    } finally {
+      setAnalysisBusy(false);
     }
   }
 
@@ -325,10 +370,15 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <div className="title">JP SRS Sentence Builder</div>
+        <div className="title">
+          JP SRS Sentence Builder
+        </div>
+        <div className="muted">
+          ① Add a word → ② Review meanings → ③ Generate sentences → ④ Export to Anki
+        </div>
         <div className="row" style={{ gap: 8 }}>
           <button className="btn secondary" onClick={() => setSettingsOpen(true)}>
-            Settings
+            Settings{ doSettingsNeedAttention() ? " ⚠️" : "" }
           </button>
           <button className="btn" onClick={onExport} disabled={exportBusy}>
             {exportBusy ? "Exporting…" : "Export"}
@@ -356,8 +406,10 @@ export default function App() {
             <WordSetupPane
               job={selectedJob}
               settings={settings}
-              busy={generationBusy}
+              generateBusy={generationBusy}
+              analyzeBusy={analysisBusy}
               onGenerate={onGenerate}
+              onAnalyze={onAnalyzeDefinitions}
               onChange={onUpdateJob}
             />
           ) : (
@@ -384,8 +436,18 @@ export default function App() {
         </section>
       </main>
 
-      <footer className="footer">
-        <div className="muted">Saved automatically to your browser (i.e. locally)</div>
+      <footer className="footer" style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+      }}>
+        <div className="muted">Saved automatically to your browser</div>
+        <div className="muted">
+          {anki.kind == "checking" && "Connecting to Anki..."}
+          {anki.kind == "online"   && "Anki connected"}
+          {anki.kind == "outdated" && "⚠️ AnkiConnect update required"}
+          {anki.kind == "offline"  && "⚠️ Anki not connected"}
+        </div>
       </footer>
 
       {settingsOpen && (

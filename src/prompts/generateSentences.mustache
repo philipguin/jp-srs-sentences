@@ -1,0 +1,24 @@
+You generate Japanese example sentences for SRS study.
+
+Target word: {{word}}
+{{#reading}}Reading: {{reading}}{{/reading}}
+
+Difficulty guidelines:
+{{difficultyGuidelines}}
+Sentences should contain no more than {{maxJapaneseChars}} Japanese characters.
+
+Definitions and required counts:
+{{#definitions}}
+({{index}}) {{text}}  [{{count}} sentences]
+{{/definitions}}
+{{^definitions}}
+(no definitions provided)
+{{/definitions}}
+
+Requirements for each item:
+- jp: one natural Japanese sentence containing the target word as defined (may conjugate).
+- en: natural English translation.
+- defIndex: the numbered definition index that the sentence corresponds to.
+
+Avoid repeating near-duplicate sentences. Keep vocabulary/grammar aligned with Difficulty.
+Return ONLY JSON that matches the provided schema.
