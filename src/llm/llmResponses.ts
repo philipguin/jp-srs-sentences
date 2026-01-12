@@ -47,7 +47,7 @@ function extractAnyText(res: any): string | null {
 ////////////////////////////////////////////////////////////////
 
 function buildPromptForGenerateSentences(wordEntry: WordEntry): string {
-  const difficulty = DIFFICULTY_PROFILES[wordEntry.difficulty];
+  const difficulty = DIFFICULTY_PROFILES[wordEntry.sentenceGenDifficulty];
   return Mustache.render(generateSentencesTemplate, {
     word: wordEntry.word,
     reading: wordEntry.reading,
@@ -160,7 +160,7 @@ export async function generateSentences(wordEntry: WordEntry, settings: AppSetti
       meaning,
       defIndex: String(it.defIndex),
       reading: wordEntry.reading ?? "",
-      difficulty: wordEntry.difficulty,
+      difficulty: wordEntry.sentenceGenDifficulty,
     });
 
     const subIdx = indicesByDefIdx[it.defIndex] ?? 0;
@@ -174,7 +174,7 @@ export async function generateSentences(wordEntry: WordEntry, settings: AppSetti
       en: it.en,
       notes,
       createdAt: now,
-      difficulty: wordEntry.difficulty,
+      difficulty: wordEntry.sentenceGenDifficulty,
     };
   });
 

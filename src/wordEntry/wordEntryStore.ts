@@ -5,13 +5,13 @@ export function uid(): string {
   return Math.random().toString(16).slice(2) + Date.now().toString(16);
 }
 
-export function createEmptyWordEntry(opts?: { difficulty?: Difficulty }): WordEntry {
+export function createEmptyWordEntry(opts?: { sentenceGenDifficulty?: Difficulty }): WordEntry {
   const now = Date.now();
   return {
     id: uid(),
     word: "",
     reading: "",
-    difficulty: opts?.difficulty ?? "beginner",
+    sentenceGenDifficulty: opts?.sentenceGenDifficulty ?? "beginner",
     definitionsRaw: "",
     definitions: [],
     generations: [],
@@ -28,8 +28,10 @@ export function touch(wordEntry: WordEntry): WordEntry {
 }
 
 export function normalizeWordEntry(wordEntry: WordEntry): WordEntry {
+  const { difficulty: legacyDifficulty, ...rest } = wordEntry as WordEntry & { difficulty?: Difficulty };
   return {
-    ...wordEntry,
+    ...rest,
+    sentenceGenDifficulty: wordEntry.sentenceGenDifficulty ?? legacyDifficulty ?? "beginner",
     definitions: wordEntry.definitions ?? [],
     generations: wordEntry.generations ?? [],
     generationBatches: wordEntry.generationBatches ?? [],

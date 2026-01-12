@@ -37,7 +37,7 @@ function pickInitialState(): { wordEntries: WordEntry[]; selectedWordEntryId: st
     return { wordEntries: persisted.wordEntries.map(normalizeWordEntry), selectedWordEntryId: selected, settings };
   }
   const settings = defaultSettings();
-  const first = createEmptyWordEntry({ difficulty: settings.defaultDifficulty });
+  const first = createEmptyWordEntry({ sentenceGenDifficulty: settings.defaultDifficulty });
   return { wordEntries: [first], selectedWordEntryId: first.id, settings };
 }
 
@@ -146,7 +146,7 @@ export default function App() {
   }
 
   function onNewWordEntry() {
-    const wordEntry = createEmptyWordEntry({ difficulty: settings.defaultDifficulty });
+    const wordEntry = createEmptyWordEntry({ sentenceGenDifficulty: settings.defaultDifficulty });
     setWordEntries((prev) => [wordEntry, ...prev]);
     setSelectedWordEntryId(wordEntry.id);
   }
@@ -162,7 +162,7 @@ export default function App() {
 
       // Always keep at least one word entry around.
       if (next.length === 0) {
-        const created = createEmptyWordEntry({ difficulty: settings.defaultDifficulty });
+        const created = createEmptyWordEntry({ sentenceGenDifficulty: settings.defaultDifficulty });
         setSelectedWordEntryId(created.id);
         return [created];
       }
@@ -196,7 +196,7 @@ export default function App() {
       const batch: GenerationBatch = {
         id: batchId,
         createdAt: batchCreatedAt,
-        difficulty: selectedWordEntry.difficulty,
+        difficulty: selectedWordEntry.sentenceGenDifficulty,
         definitions: selectedWordEntry.definitions.map((definition) => ({ ...definition })),
       };
       const nextItems = results.map((generation) => buildSentenceItem(selectedWordEntry, generation, batchId));

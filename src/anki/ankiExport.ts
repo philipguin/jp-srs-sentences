@@ -143,7 +143,7 @@ export function buildAnkiTags(settings: AppSettings, wordEntry: WordEntry, sente
   const tags = [...baseTags];
 
   if (settings.ankiIncludeDifficultyTag) {
-    const difficultyKey = sentence.difficulty ?? wordEntry.difficulty;
+    const difficultyKey = sentence.difficulty ?? wordEntry.sentenceGenDifficulty;
     if (difficultyKey) {
       tags.push(`difficulty-${difficultyKey}`);
     }
