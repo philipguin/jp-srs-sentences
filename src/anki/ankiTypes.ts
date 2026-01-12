@@ -1,0 +1,16 @@
+export type AnkiFieldSource =
+  | ""
+  | "word"
+  | "wordKana"
+  | "wordFuri"
+  | "wordFuriHtml"
+  | "meaning"
+  | "meaningNumber"
+  | "sentenceJp"
+  | "sentenceJpKana"
+  | "sentenceJpFuri"
+  | "sentenceJpFuriHtml"
+  | "sentenceEn"
+  | "difficulty"
+  | "notes"
+  | "reading";

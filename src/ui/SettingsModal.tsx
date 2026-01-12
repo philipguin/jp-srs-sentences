@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import type { AnkiFieldSource, AppSettings, Difficulty } from "../state/types";
-import { DIFFICULTY_PROFILES } from "../state/difficulty";
-import { ANKI_FIELD_OPTIONS } from "../lib/ankiFields";
-import { fetchDeckNames, fetchModelFieldNames, fetchModelNames } from "../lib/ankiConnect";
-import { validateTemplateMacros } from "../lib/template";
+import type { AnkiFieldSource } from "../anki/ankiTypes";
+import type { AppSettings } from "../settings/settingsTypes";
+import type { Difficulty } from "../sentenceGen/sentenceGenTypes";
+import { DIFFICULTY_PROFILES } from "../sentenceGen/sentenceGenDifficulty";
+import { ANKI_FIELD_OPTIONS } from "../anki/ankiFields";
+import { fetchDeckNames, fetchModelFieldNames, fetchModelNames } from "../anki/ankiConnect";
+import { validateTemplateMacros } from "../shared/template";
 
 const NOTES_TEMPLATE_ALLOWLIST = [
   "word",

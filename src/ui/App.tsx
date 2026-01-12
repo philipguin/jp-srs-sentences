@@ -1,18 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
-import "./styles.css";
-import { WordListPane } from "./components/WordListPane";
-import { WordSetupPane } from "./components/WordSetupPane";
-import { GenerationsPane } from "./components/GenerationsPane";
-import { SettingsModal } from "./components/SettingsModal";
-import { createEmptyJob, normalizeJob, touch, uid } from "./state/store";
-import type { AppSettings, GenerationBatch, Job, SentenceGeneration, SentenceItem } from "./state/types";
-import { defaultSettings } from "./state/defaults";
-import { loadPersistedState, savePersistedState } from "./state/persistence";
-import { analyzeMeanings, generateSentences } from "./lib/openaiResponses";
-import { buildMockGenerations } from "./lib/mockGeneration";
-import { useAnkiConnectStatus, fetchModelFieldNames, addNotes } from "./lib/ankiConnect";
-import { buildAnkiFieldPayload, buildAnkiTags } from "./lib/ankiExport";
-import { initFurigana, isFuriganaReady } from "./lib/furigana";
+import "../styles.css";
+import { WordListPane } from "../ui/WordListPane";
+import { WordSetupPane } from "../ui/WordSetupPane";
+import { GenerationsPane } from "../ui/GenerationsPane";
+import { SettingsModal } from "../ui/SettingsModal";
+import { createEmptyJob, normalizeJob, touch, uid } from "../wordEntry/wordEntryStore";
+import type { AppSettings } from "../settings/settingsTypes";
+import type { GenerationBatch, SentenceGeneration, SentenceItem } from "../sentenceGen/sentenceGenTypes";
+import type { Job } from "../wordEntry/wordEntryTypes";
+import { defaultSettings } from "../settings/settingsDefaults";
+import { loadPersistedState, savePersistedState } from "../app/appPersistence";
+import { analyzeMeanings, generateSentences } from "../llm/llmResponses";
+import { buildMockGenerations } from "../sentenceGen/sentenceGenMock";
+import { useAnkiConnectStatus, fetchModelFieldNames, addNotes } from "../anki/ankiConnect";
+import { buildAnkiFieldPayload, buildAnkiTags } from "../anki/ankiExport";
+import { initKuroshiro, isKuroshiroReady } from "../kuroshiro/kuroshiroService";
 
 function pickInitialState(): { jobs: Job[]; selectedJobId: string; settings: AppSettings } {
   const persisted = loadPersistedState();
@@ -79,7 +81,7 @@ export default function App() {
   const [generationErr, setGenerationErr] = useState<string | null>(null);
   const [generationNotice, setGenerationNotice] = useState<string | null>(null);
   const [furiganaStatus, setFuriganaStatus] = useState<"idle" | "loading" | "ready" | "error">(
-    isFuriganaReady() ? "ready" : "idle",
+    isKuroshiroReady() ? "ready" : "idle",
   );
   const furiganaAvailable = settings.enableFurigana && furiganaStatus === "ready";
 
@@ -106,18 +108,18 @@ export default function App() {
 
   useEffect(() => {
     if (!settings.enableFurigana) {
-      setFuriganaStatus(isFuriganaReady() ? "ready" : "idle");
+      setFuriganaStatus(isKuroshiroReady() ? "ready" : "idle");
       return;
     }
 
-    if (isFuriganaReady()) {
+    if (isKuroshiroReady()) {
       setFuriganaStatus("ready");
       return;
     }
 
     let cancelled = false;
     setFuriganaStatus("loading");
-    initFurigana()
+    initKuroshiro()
       .then(() => {
         if (!cancelled) setFuriganaStatus("ready");
       })

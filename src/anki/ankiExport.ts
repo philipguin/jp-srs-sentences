@@ -1,6 +1,9 @@
-import type { AppSettings, AnkiFieldSource, Job, SentenceItem } from "../state/types";
-import { DIFFICULTY_PROFILES } from "../state/difficulty";
-import { buildFuriganaCacheKey, ensureFuriganaCacheEntry } from "./furigana";
+import type { AnkiFieldSource } from "./ankiTypes";
+import type { AppSettings } from "../settings/settingsTypes";
+import type { SentenceItem } from "../sentenceGen/sentenceGenTypes";
+import type { Job } from "../wordEntry/wordEntryTypes";
+import { DIFFICULTY_PROFILES } from "../sentenceGen/sentenceGenDifficulty";
+import { buildKuroshiroCacheKey, ensureKuroshiroCacheEntry } from "../kuroshiro/kuroshiroService";
 
 async function resolveFuriganaValue(
   text: string,
@@ -8,12 +11,12 @@ async function resolveFuriganaValue(
   field: "kana" | "rubyHtml" | "anki",
   existing: SentenceItem["furiganaCache"] | Job["furiganaCache"],
 ): Promise<{ value: string; cache: SentenceItem["furiganaCache"] | Job["furiganaCache"] }> {
-  const key = buildFuriganaCacheKey(text, cacheKeyMode);
+  const key = buildKuroshiroCacheKey(text, cacheKeyMode);
   const normalized = existing?.key === key ? existing : { key };
   if (normalized?.[field]) {
     return { value: normalized[field] ?? text, cache: normalized };
   }
-  const next = await ensureFuriganaCacheEntry(text, cacheKeyMode, normalized, field);
+  const next = await ensureKuroshiroCacheEntry(text, cacheKeyMode, normalized, field);
   return { value: next[field] ?? text, cache: next };
 }
 

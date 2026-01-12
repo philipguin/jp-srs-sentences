@@ -1,4 +1,4 @@
-import type { DefinitionSpec } from "../state/types";
+import type { DefinitionSpec } from "./wordEntryTypes";
 
 /**
  * Parses numbered definitions like:

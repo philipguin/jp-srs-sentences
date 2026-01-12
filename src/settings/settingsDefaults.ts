@@ -1,10 +1,10 @@
-import type { AppSettings } from "./types";
+import type { AppSettings } from "./settingsTypes";
 
 export function defaultSettings(): AppSettings {
   return {
     apiKey: "",
     rememberApiKey: false,
-    model: "gpt-5-mini",
+    model: "gpt-5-chat-latest",
 
     jpdbApiKey: "",
     rememberJpdbApiKey: false,

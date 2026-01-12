@@ -1,9 +1,11 @@
 import { useState } from "react";
-import type { Job, Difficulty, DifficultyProfile, DefinitionSpec, AppSettings, DefinitionValidity, DefinitionStudyPriority } from "../state/types";
-import { DIFFICULTY_PROFILES } from "../state/difficulty";
-import { touch } from "../state/store";
-import { applyCountPreset, mergeCounts, parseDefinitions } from "../lib/parseDefinitions";
-import { applyTemplate } from "../lib/template";
+import type { AppSettings } from "../settings/settingsTypes";
+import type { Difficulty, DifficultyProfile } from "../sentenceGen/sentenceGenTypes";
+import type { DefinitionSpec, DefinitionStudyPriority, DefinitionValidity, Job } from "../wordEntry/wordEntryTypes";
+import { DIFFICULTY_PROFILES } from "../sentenceGen/sentenceGenDifficulty";
+import { touch } from "../wordEntry/wordEntryStore";
+import { applyCountPreset, mergeCounts, parseDefinitions } from "../wordEntry/wordEntryDefinitions";
+import { applyTemplate } from "../shared/template";
 
 export function WordSetupPane(props: {
   job: Job;
