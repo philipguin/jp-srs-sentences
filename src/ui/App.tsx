@@ -1,20 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
-import "./styles.css";
-import { WordListPane } from "./components/WordListPane";
-import { WordSetupPane } from "./components/WordSetupPane";
-import { GenerationsPane } from "./components/GenerationsPane";
-import { SettingsModal } from "./components/SettingsModal";
-import { createEmptyJob, normalizeJob, touch, uid } from "./wordEntry/wordEntryStore";
-import type { AppSettings } from "./settings/settingsTypes";
-import type { GenerationBatch, SentenceGeneration, SentenceItem } from "./sentenceGen/sentenceGenTypes";
-import type { Job } from "./wordEntry/wordEntryTypes";
-import { defaultSettings } from "./settings/settingsDefaults";
-import { loadPersistedState, savePersistedState } from "./app/appPersistence";
-import { analyzeMeanings, generateSentences } from "./llm/llmResponses";
-import { buildMockGenerations } from "./sentenceGen/sentenceGenMock";
-import { useAnkiConnectStatus, fetchModelFieldNames, addNotes } from "./anki/ankiConnect";
-import { buildAnkiFieldPayload, buildAnkiTags } from "./anki/ankiExport";
-import { initFurigana, isFuriganaReady } from "./furigana/furiganaService";
+import "../styles.css";
+import { WordListPane } from "../ui/WordListPane";
+import { WordSetupPane } from "../ui/WordSetupPane";
+import { GenerationsPane } from "../ui/GenerationsPane";
+import { SettingsModal } from "../ui/SettingsModal";
+import { createEmptyJob, normalizeJob, touch, uid } from "../wordEntry/wordEntryStore";
+import type { AppSettings } from "../settings/settingsTypes";
+import type { GenerationBatch, SentenceGeneration, SentenceItem } from "../sentenceGen/sentenceGenTypes";
+import type { Job } from "../wordEntry/wordEntryTypes";
+import { defaultSettings } from "../settings/settingsDefaults";
+import { loadPersistedState, savePersistedState } from "../app/appPersistence";
+import { analyzeMeanings, generateSentences } from "../llm/llmResponses";
+import { buildMockGenerations } from "../sentenceGen/sentenceGenMock";
+import { useAnkiConnectStatus, fetchModelFieldNames, addNotes } from "../anki/ankiConnect";
+import { buildAnkiFieldPayload, buildAnkiTags } from "../anki/ankiExport";
+import { initFurigana, isFuriganaReady } from "../furigana/furiganaService";
 
 function pickInitialState(): { jobs: Job[]; selectedJobId: string; settings: AppSettings } {
   const persisted = loadPersistedState();
