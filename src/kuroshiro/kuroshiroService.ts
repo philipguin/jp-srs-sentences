@@ -1,6 +1,7 @@
 import Kuroshiro from "kuroshiro";
 import KuromojiAnalyzer from "@sglkc/kuroshiro-analyzer-kuromoji";
-import type { FuriganaCache, FuriganaMode } from "./furiganaTypes";
+import type { KanaMode } from "../settings/settingsTypes";
+import type { KuroshiroCache } from "./kuroshiroTypes";
 
 const PARSER_ID = "kuroshiro+kuromoji-ipadic";
 const PARSER_VERSION = "1";
@@ -9,19 +10,19 @@ let kuroshiro: Kuroshiro | null = null;
 let initPromise: Promise<void> | null = null;
 let initError: string | null = null;
 
-export function buildFuriganaCacheKey(text: string, mode: FuriganaMode): string {
+export function buildKuroshiroCacheKey(text: string, mode: KanaMode): string {
   return [PARSER_ID, PARSER_VERSION, mode, text].join("|");
 }
 
-export function getFuriganaInitError(): string | null {
+export function getKuroshiroInitError(): string | null {
   return initError;
 }
 
-export function isFuriganaReady(): boolean {
+export function isKuroshiroReady(): boolean {
   return !!kuroshiro;
 }
 
-export async function initFurigana(): Promise<void> {
+export async function initKuroshiro(): Promise<void> {
   if (kuroshiro) return;
   if (initPromise) return initPromise;
 
@@ -40,21 +41,21 @@ export async function initFurigana(): Promise<void> {
   return initPromise;
 }
 
-async function ensureFurigana(): Promise<Kuroshiro> {
-  await initFurigana();
+async function ensureKuroshiro(): Promise<Kuroshiro> {
+  await initKuroshiro();
   if (!kuroshiro) {
-    throw new Error("Furigana engine failed to initialize.");
+    throw new Error("Kuroshiro engine failed to initialize.");
   }
   return kuroshiro;
 }
 
-export async function toKana(text: string, mode: FuriganaMode): Promise<string> {
-  const engine = await ensureFurigana();
+export async function toKana(text: string, mode: KanaMode): Promise<string> {
+  const engine = await ensureKuroshiro();
   return engine.convert(text, { to: mode, mode: "normal" });
 }
 
-export async function toRubyHtml(text: string, mode: FuriganaMode): Promise<string> {
-  const engine = await ensureFurigana();
+export async function toRubyHtml(text: string, mode: KanaMode): Promise<string> {
+  const engine = await ensureKuroshiro();
   return engine.convert(text, { to: mode, mode: "furigana" });
 }
 
@@ -88,19 +89,19 @@ function rubyHtmlToAnki(rubyHtml: string): string {
   return result;
 }
 
-export async function toAnkiBracket(text: string, mode: FuriganaMode): Promise<string> {
+export async function toAnkiBracket(text: string, mode: KanaMode): Promise<string> {
   const rubyHtml = await toRubyHtml(text, mode);
   return rubyHtmlToAnki(rubyHtml);
 }
 
-export async function ensureFuriganaCacheEntry(
+export async function ensureKuroshiroCacheEntry(
   text: string,
-  mode: FuriganaMode,
-  existing: FuriganaCache | undefined,
-  field: keyof Omit<FuriganaCache, "key">,
-): Promise<FuriganaCache> {
-  const key = buildFuriganaCacheKey(text, mode);
-  const cache: FuriganaCache = existing?.key === key ? { ...existing } : { key };
+  mode: KanaMode,
+  existing: KuroshiroCache | undefined,
+  field: keyof Omit<KuroshiroCache, "key">,
+): Promise<KuroshiroCache> {
+  const key = buildKuroshiroCacheKey(text, mode);
+  const cache: KuroshiroCache = existing?.key === key ? { ...existing } : { key };
 
   if (cache[field]) return cache;
 

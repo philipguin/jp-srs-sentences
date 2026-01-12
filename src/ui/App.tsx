@@ -14,7 +14,7 @@ import { analyzeMeanings, generateSentences } from "../llm/llmResponses";
 import { buildMockGenerations } from "../sentenceGen/sentenceGenMock";
 import { useAnkiConnectStatus, fetchModelFieldNames, addNotes } from "../anki/ankiConnect";
 import { buildAnkiFieldPayload, buildAnkiTags } from "../anki/ankiExport";
-import { initFurigana, isFuriganaReady } from "../furigana/furiganaService";
+import { initKuroshiro, isKuroshiroReady } from "../kuroshiro/kuroshiroService";
 
 function pickInitialState(): { jobs: Job[]; selectedJobId: string; settings: AppSettings } {
   const persisted = loadPersistedState();
@@ -81,7 +81,7 @@ export default function App() {
   const [generationErr, setGenerationErr] = useState<string | null>(null);
   const [generationNotice, setGenerationNotice] = useState<string | null>(null);
   const [furiganaStatus, setFuriganaStatus] = useState<"idle" | "loading" | "ready" | "error">(
-    isFuriganaReady() ? "ready" : "idle",
+    isKuroshiroReady() ? "ready" : "idle",
   );
   const furiganaAvailable = settings.enableFurigana && furiganaStatus === "ready";
 
@@ -108,18 +108,18 @@ export default function App() {
 
   useEffect(() => {
     if (!settings.enableFurigana) {
-      setFuriganaStatus(isFuriganaReady() ? "ready" : "idle");
+      setFuriganaStatus(isKuroshiroReady() ? "ready" : "idle");
       return;
     }
 
-    if (isFuriganaReady()) {
+    if (isKuroshiroReady()) {
       setFuriganaStatus("ready");
       return;
     }
 
     let cancelled = false;
     setFuriganaStatus("loading");
-    initFurigana()
+    initKuroshiro()
       .then(() => {
         if (!cancelled) setFuriganaStatus("ready");
       })

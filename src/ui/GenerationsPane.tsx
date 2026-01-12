@@ -4,7 +4,7 @@ import type { Job } from "../wordEntry/wordEntryTypes";
 import type { SentenceItem } from "../sentenceGen/sentenceGenTypes";
 import { DIFFICULTY_PROFILES } from "../sentenceGen/sentenceGenDifficulty";
 import { touch } from "../wordEntry/wordEntryStore";
-import { buildFuriganaCacheKey, ensureFuriganaCacheEntry } from "../furigana/furiganaService";
+import { buildKuroshiroCacheKey, ensureKuroshiroCacheEntry } from "../kuroshiro/kuroshiroService";
 
 type DisplayMode = "natural" | "furigana" | "kana";
 
@@ -16,7 +16,7 @@ function SentenceDisplay(props: {
   onUpdateSentence: (sentenceId: string, cache: SentenceItem["furiganaCache"]) => void;
 }) {
   const { sentence, displayMode, furiganaAvailable, kanaMode, onUpdateSentence } = props;
-  const cacheKey = useMemo(() => buildFuriganaCacheKey(sentence.jp, kanaMode), [sentence.jp, kanaMode]);
+  const cacheKey = useMemo(() => buildKuroshiroCacheKey(sentence.jp, kanaMode), [sentence.jp, kanaMode]);
   const cache = sentence.furiganaCache?.key === cacheKey ? sentence.furiganaCache : undefined;
 
   useEffect(() => {
@@ -29,7 +29,7 @@ function SentenceDisplay(props: {
 
     async function load() {
       try {
-        const nextCache = await ensureFuriganaCacheEntry(sentence.jp, kanaMode, cache, field);
+        const nextCache = await ensureKuroshiroCacheEntry(sentence.jp, kanaMode, cache, field);
         if (cancelled) return;
         if (nextCache.key === cache?.key && nextCache[field] === cache?.[field]) return;
         onUpdateSentence(sentence.id, nextCache);

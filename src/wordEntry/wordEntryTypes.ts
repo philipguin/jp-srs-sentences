@@ -1,4 +1,4 @@
-import type { FuriganaCache } from "../furigana/furiganaTypes";
+import type { KuroshiroCache } from "../kuroshiro/kuroshiroTypes";
 import type { Difficulty, GenerationBatch, SentenceGeneration, SentenceItem } from "../sentenceGen/sentenceGenTypes";
 
 export type JobStatus = "draft" | "generating" | "ready" | "error";
@@ -26,7 +26,7 @@ export interface Job {
   generations: SentenceGeneration[];
   generationBatches: GenerationBatch[];
   sentences: SentenceItem[];
-  furiganaCache?: FuriganaCache;
+  furiganaCache?: KuroshiroCache;
   status: JobStatus;
   createdAt: number;
   updatedAt: number;

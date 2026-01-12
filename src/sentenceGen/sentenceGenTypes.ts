@@ -1,4 +1,4 @@
-import type { FuriganaCache } from "../furigana/furiganaTypes";
+import type { KuroshiroCache } from "../kuroshiro/kuroshiroTypes";
 
 export type Difficulty = "intro" | "beginner" | "intermediate" | "native-like" | "written-narrative" | "ultra-literary";
 
@@ -24,7 +24,7 @@ export interface SentenceItem {
   createdAt: number;
   exportEnabled: boolean;
   exportStatus: SentenceExportStatus;
-  furiganaCache?: FuriganaCache;
+  furiganaCache?: KuroshiroCache;
   generationId?: string;
   batchId?: number;
   definitionSnapshot?: {

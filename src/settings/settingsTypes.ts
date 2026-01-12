@@ -1,6 +1,7 @@
 import type { AnkiFieldSource } from "../anki/ankiTypes";
 import type { Difficulty } from "../sentenceGen/sentenceGenTypes";
-import type { FuriganaMode } from "../furigana/furiganaTypes";
+export type KanaMode = "hiragana" | "katakana";
+
 
 export interface AppSettings {
   apiKey: string;
@@ -22,5 +23,5 @@ export interface AppSettings {
   ankiIncludeDifficultyTag: boolean;
 
   enableFurigana: boolean;
-  furiganaKanaMode: FuriganaMode;
+  furiganaKanaMode: KanaMode;
 }
