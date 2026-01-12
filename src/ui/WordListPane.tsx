@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AppSettings } from "../settings/settingsTypes";
 import type { Job } from "../wordEntry/wordEntryTypes";
-import { buildFuriganaCacheKey, ensureFuriganaCacheEntry } from "../furigana/furiganaService";
+import { buildKuroshiroCacheKey, ensureKuroshiroCacheEntry } from "../kuroshiro/kuroshiroService";
 
 type DisplayMode = "natural" | "furigana" | "kana";
 
@@ -13,7 +13,7 @@ function JobTitle(props: {
   onUpdateJob: (job: Job) => void;
 }) {
   const { job, displayMode, furiganaAvailable, kanaMode, onUpdateJob } = props;
-  const cacheKey = useMemo(() => buildFuriganaCacheKey(job.word, kanaMode), [job.word, kanaMode]);
+  const cacheKey = useMemo(() => buildKuroshiroCacheKey(job.word, kanaMode), [job.word, kanaMode]);
   const cache = job.furiganaCache?.key === cacheKey ? job.furiganaCache : undefined;
 
   useEffect(() => {
@@ -26,7 +26,7 @@ function JobTitle(props: {
 
     async function load() {
       try {
-        const nextCache = await ensureFuriganaCacheEntry(job.word, kanaMode, cache, field);
+        const nextCache = await ensureKuroshiroCacheEntry(job.word, kanaMode, cache, field);
         if (cancelled) return;
         if (nextCache.key === cache?.key && nextCache[field] === cache?.[field]) return;
         onUpdateJob({ ...job, furiganaCache: nextCache });
