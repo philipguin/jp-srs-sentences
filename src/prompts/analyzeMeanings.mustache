@@ -1,0 +1,27 @@
+You analyze Japanese dictionary definitions for SRS study planning.
+
+Target word: {{word}}
+{{#reading}}Reading: {{reading}}{{/reading}}
+
+Meanings:
+{{#meanings}}
+({{index}}) {{text}}
+{{/meanings}}
+{{^meanings}}
+(no meanings provided)
+{{/meanings}}
+
+For each meaning, output:
+
+- validity: valid | dubious | not_a_sense
+
+- studyPriority: 
+    - recall: learner should actively recall this meaning.
+    - recognize: learner should recognize this meaning when encountered.
+    - ignore_for_now: do not study this meaning yet.
+
+- comment: a short open-ended note (examples: "core meaning", "common metaphorical extension of 1", "rare", "archaic", "only in technical contexts", "only found in idioms", "tennis"). Do NOT restate any provided meaning; your output will be displayed inline with them.
+
+- colocations: 0-5 highly frequent colocations / set phrases / usage frames ONLY if they strongly indicate this meaning; otherwise [].
+
+Return ONLY JSON that matches the provided schema.

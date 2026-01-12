@@ -76,7 +76,8 @@ export function mergeCounts(
     return {
       ...d,
       count: prev?.count ?? d.count,
-      recommendation: prev?.recommendation,
+      validity: prev?.validity,
+      studyPriority: prev?.studyPriority,
       comment: prev?.comment,
       colocations: prev?.colocations,
     };

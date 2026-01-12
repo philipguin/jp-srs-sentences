@@ -1,15 +1,16 @@
-import type { AppSettings, Job, SentenceGeneration, DefinitionRecommendation } from "../state/types";
+import type { AppSettings, Job, SentenceGeneration, DefinitionValidity, DefinitionStudyPriority } from "../state/types";
 import { DIFFICULTY_PROFILES } from "../state/difficulty";
 import { applyTemplate } from "./template";
 import Mustache from "mustache";
 import generateSentencesTemplate from "../prompts/generateSentences.mustache?raw";
-import analyzeDefinitionsTemplate from "../prompts/analyzeDefinitions.mustache?raw";
+import analyzeMeaningsTemplate from "../prompts/analyzeMeanings.mustache?raw";
 
 type ModelItem = { defIndex: number; jp: string; en: string };
 type ModelPayload = { items: ModelItem[] };
 type DefinitionAnalysisItem = {
-  defIndex: number;
-  recommendation: DefinitionRecommendation;
+  meaningIndex: number;
+  validity: DefinitionValidity;
+  studyPriority: DefinitionStudyPriority;
   comment: string;
   colocations: string[];
 };
@@ -17,56 +18,6 @@ type DefinitionAnalysisPayload = { items: DefinitionAnalysisItem[] };
 
 function uid(): string {
   return Math.random().toString(16).slice(2) + Date.now().toString(16);
-}
-
-function buildSentencePrompt(job: Job): string {
-  const difficulty = DIFFICULTY_PROFILES[job.difficulty];
-  return Mustache.render(generateSentencesTemplate, {
-    word: job.word || "(not provided)",
-    reading: job.reading || "(not provided)",
-    difficultyGuidelines: difficulty.promptGuidelines,
-    maxJapaneseChars: difficulty.maxJapaneseChars,
-    definitions: job.definitions.map((d) => ({
-      index: d.index,
-      text: d.text,
-      count: d.count,
-    })),
-  });
-}
-
-function buildDefinitionAnalysisPrompt(job: Job): string {
-  return Mustache.render(analyzeDefinitionsTemplate, {
-    word: job.word || "(not provided)",
-    reading: job.reading || "(not provided)",
-    definitions: job.definitions.map((d) => ({
-      index: d.index,
-      text: d.text,
-    })),
-  });
-}
-
-function schemaForOutput() {
-  // JSON Schema for Structured Outputs (Responses API)
-  return {
-    type: "object",
-    additionalProperties: false,
-    required: ["items"],
-    properties: {
-      items: {
-        type: "array",
-        items: {
-          type: "object",
-          additionalProperties: false,
-          required: ["defIndex", "jp", "en"],
-          properties: {
-            defIndex: { type: "integer" },
-            jp: { type: "string" },
-            en: { type: "string" },
-          },
-        },
-      },
-    },
-  };
 }
 
 /**
@@ -91,6 +42,47 @@ function extractAnyText(res: any): string | null {
   return null;
 }
 
+////////////////////////////////////////////////////////////////
+
+function buildPromptForGenerateSentences(job: Job): string {
+  const difficulty = DIFFICULTY_PROFILES[job.difficulty];
+  return Mustache.render(generateSentencesTemplate, {
+    word: job.word,
+    reading: job.reading,
+    difficultyGuidelines: difficulty.promptGuidelines,
+    maxJapaneseChars: difficulty.maxJapaneseChars,
+    definitions: job.definitions.map((d) => ({
+      index: d.index,
+      text: d.text,
+      count: d.count,
+    })),
+  });
+}
+
+function schemaForGenerateSentences() {
+  // JSON Schema for Structured Outputs (Responses API)
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: ["items"],
+    properties: {
+      items: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["defIndex", "jp", "en"],
+          properties: {
+            defIndex: { type: "integer" },
+            jp: { type: "string" },
+            en: { type: "string" },
+          },
+        },
+      },
+    },
+  };
+}
+
 export async function generateSentences(job: Job, settings: AppSettings): Promise<SentenceGeneration[]> {
   if (!settings.apiKey) throw new Error("Missing API key (Settings → API Key).");
   if (!settings.model) throw new Error("Missing model (Settings → Model).");
@@ -100,7 +92,7 @@ export async function generateSentences(job: Job, settings: AppSettings): Promis
   const totalNeeded = job.definitions.reduce((sum, d) => sum + (d.count || 0), 0);
   if (totalNeeded <= 0) throw new Error("All definition counts are zero.");
 
-  const prompt = buildSentencePrompt(job);
+  const prompt = buildPromptForGenerateSentences(job);
 
   const body = {
     model: settings.model,
@@ -120,7 +112,7 @@ export async function generateSentences(job: Job, settings: AppSettings): Promis
         type: "json_schema",
         name: "jp_srs_sentences",
         strict: true,
-        schema: schemaForOutput(),
+        schema: schemaForGenerateSentences(),
       },
     },
   };
@@ -187,7 +179,20 @@ export async function generateSentences(job: Job, settings: AppSettings): Promis
   return results;
 }
 
-function schemaForDefinitionAnalysis() {
+////////////////////////////////////////////////////////////////
+
+function buildPromptForAnalyzeMeanings(job: Job): string {
+  return Mustache.render(analyzeMeaningsTemplate, {
+    word: job.word,
+    reading: job.reading,
+    meanings: job.definitions.map((d) => ({
+      index: d.index,
+      text: d.text,
+    })),
+  });
+}
+
+function schemaForAnalyzeMeanings() {
   return {
     type: "object",
     additionalProperties: false,
@@ -198,10 +203,11 @@ function schemaForDefinitionAnalysis() {
         items: {
           type: "object",
           additionalProperties: false,
-          required: ["defIndex", "recommendation", "comment", "colocations"],
+          required: ["meaningIndex", "validity", "studyPriority", "comment", "colocations"],
           properties: {
-            defIndex: { type: "integer" },
-            recommendation: { type: "string", enum: ["recall", "recognize", "drop"] },
+            meaningIndex: { type: "integer" },
+            validity: { type: "string", enum: ["valid", "dubious", "not_a_sense"] },
+            studyPriority: { type: "string", enum: ["recall", "recognize", "ignore_for_now"] },
             comment: { type: "string" },
             colocations: {
               type: "array",
@@ -214,13 +220,13 @@ function schemaForDefinitionAnalysis() {
   };
 }
 
-export async function analyzeDefinitions(job: Job, settings: AppSettings): Promise<DefinitionAnalysisItem[]> {
+export async function analyzeMeanings(job: Job, settings: AppSettings): Promise<DefinitionAnalysisItem[]> {
   if (!settings.apiKey) throw new Error("Missing API key (Settings → API Key).");
   if (!settings.model) throw new Error("Missing model (Settings → Model).");
   if (!job.word.trim()) throw new Error("Job is missing a target word.");
   if (job.definitions.length === 0) throw new Error("Job has no parsed definitions.");
 
-  const prompt = buildDefinitionAnalysisPrompt(job);
+  const prompt = buildPromptForAnalyzeMeanings(job);
 
   const body = {
     model: settings.model,
@@ -239,7 +245,7 @@ export async function analyzeDefinitions(job: Job, settings: AppSettings): Promi
         type: "json_schema",
         name: "jp_srs_definition_analysis",
         strict: true,
-        schema: schemaForDefinitionAnalysis(),
+        schema: schemaForAnalyzeMeanings(),
       },
     },
   };
