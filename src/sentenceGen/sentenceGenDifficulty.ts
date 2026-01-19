@@ -20,8 +20,10 @@ export const DIFFICULTY_PROFILES: Record<Difficulty, DifficultyProfile> = {
     shortHelp: "Natural but simple sentences a learner can parse comfortably.",
     maxJapaneseChars: 55,
     promptGuidelines: [
+      "Prefer vocabulary and grammar that is high-frequency within the natural register",
+      " or domain of the target definition (e.g. spoken, written, news, anime, etc.),",
+      " while allowing for frequent collocations associated with that usage.",
       "Use short sentences, but allow basic subordinate clauses (because/if/when).",
-      "Use common spoken grammar; keep phrasing natural but still explicit.",
       "Allow light ellipsis only when it doesn’t create ambiguity.",
       "Idioms only if extremely common; avoid niche slang.",
     ].join("\n"),
@@ -33,6 +35,9 @@ export const DIFFICULTY_PROFILES: Record<Difficulty, DifficultyProfile> = {
     shortHelp: "Natural Japanese with clauses, ellipsis, and common idioms.",
     maxJapaneseChars: 80,
     promptGuidelines: [
+      "Prefer vocabulary and grammar that is commonly encountered within the natural register",
+      " or domain of the target definition (e.g. spoken, written, news, anime, etc.),",
+      " while allowing for frequent collocations associated with that usage.",
       "Use natural sentence flow with multiple clauses when appropriate.",
       "Allow common ellipsis (dropping obvious subjects).",
       "Include common collocations and idioms if they fit naturally.",

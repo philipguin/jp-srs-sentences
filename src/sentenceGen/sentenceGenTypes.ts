@@ -15,7 +15,7 @@ export type DifficultyProfile = {
 
 export type SentenceExportStatus = "new" | "exported" | "failed";
 
-export interface SentenceItem {
+export type SentenceItem = {
   id: string;
   jp: string;
   en: string;
@@ -34,7 +34,7 @@ export interface SentenceItem {
   difficulty?: Difficulty;
 }
 
-export interface SentenceGeneration {
+export type SentenceGeneration = {
   id: string;
   defIndex: number;
   defSubIndex: number;
@@ -45,15 +45,28 @@ export interface SentenceGeneration {
   difficulty: Difficulty;
 }
 
-export interface GenerationBatchDefinition {
+export type GenerationBatchDefinition = {
   index: number;
   text: string;
   count: number;
 }
 
-export interface GenerationBatch {
+export type GenerationBatch = {
   id: number;
   createdAt: number;
   difficulty: Difficulty;
   definitions: GenerationBatchDefinition[];
+}
+
+export type SentenceGenState = {
+  difficulty: Difficulty;
+  generationBusy: boolean;
+  analysisBusy: boolean;
+  generationErr: string | null;
+  generationNotice: string | null;
+
+  generate: () => Promise<void>;
+  analyze: () => Promise<void>;
+  clearMessages: () => void;
+  setDifficulty: (difficulty: Difficulty) => void;
 }

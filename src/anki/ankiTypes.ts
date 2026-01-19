@@ -14,3 +14,8 @@ export type AnkiFieldSource =
   | "difficulty"
   | "notes"
   | "reading";
+
+export type AnkiExportState = {
+  exportBusy: boolean;
+  onExport: () => Promise<void>;
+};

@@ -6,7 +6,7 @@ export type WordEntryStatus = "draft" | "generating" | "ready" | "error";
 export type DefinitionValidity = "valid" | "dubious" | "not_a_sense";
 export type DefinitionStudyPriority = "recall" | "recognize" | "ignore_for_now";
 
-export interface DefinitionSpec {
+export type DefinitionSpec = {
   index: number;
   text: string;
   count: number;
@@ -16,7 +16,7 @@ export interface DefinitionSpec {
   colocations?: string[];
 }
 
-export interface WordEntry {
+export type WordEntry = {
   id: string;
   word: string;
   reading?: string;
@@ -30,4 +30,17 @@ export interface WordEntry {
   createdAt: number;
   updatedAt: number;
   lastError?: string;
+}
+
+export type WordEntries = {
+  list: WordEntry[];
+  selectedId: string;
+  selected?: WordEntry;
+
+  get: (id: string) => WordEntry | undefined;
+  select: (id: string) => void;
+  create: () => void;
+  remove: (id: string) => void;
+  update: (id: string, updater: (current: WordEntry) => WordEntry) => void;
+  updateAll: (updater: (current: WordEntry) => WordEntry) => void;
 }

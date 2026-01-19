@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { initKuroshiro, isKuroshiroReady } from "./kuroshiroService";
+import type { KuroshiroStatus } from "./kuroshiroTypes"
 
-export function useFuriganaStatus(enableFurigana: boolean): "idle" | "loading" | "ready" | "error" {
-  const [furiganaStatus, setFuriganaStatus] = useState<"idle" | "loading" | "ready" | "error">(
+export function useFuriganaStatus(enableFurigana: boolean): KuroshiroStatus {
+
+  const [furiganaStatus, setFuriganaStatus] = useState<KuroshiroStatus>(
     isKuroshiroReady() ? "ready" : "idle",
   );
-
   useEffect(() => {
     if (!enableFurigana) {
       setFuriganaStatus(isKuroshiroReady() ? "ready" : "idle");

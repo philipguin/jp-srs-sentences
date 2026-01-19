@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import type { FuriganaState } from "../app/appTypes";
 import type { AppSettings } from "../settings/settingsTypes";
-import type { WordEntry } from "../wordEntry/wordEntryTypes";
-import type { FuriganaState, WordEntryState } from "../app/AppLogic";
+import type { WordEntries, WordEntry } from "../wordEntry/wordEntryTypes";
 import { buildKuroshiroCacheKey, ensureKuroshiroCacheEntry } from "../kuroshiro/kuroshiroService";
 
 type DisplayMode = "natural" | "furigana" | "kana";
@@ -11,9 +11,9 @@ function WordEntryTitle(props: {
   displayMode: DisplayMode;
   furiganaAvailable: boolean;
   kanaMode: AppSettings["furiganaKanaMode"];
-  onUpdateWordEntry: (wordEntry: WordEntry) => void;
+  updateWordEntry: (id: string, updater: (wordEntry: WordEntry) => WordEntry) => void;
 }) {
-  const { wordEntry, displayMode, furiganaAvailable, kanaMode, onUpdateWordEntry } = props;
+  const { wordEntry, displayMode, furiganaAvailable, kanaMode, updateWordEntry } = props;
   const cacheKey = useMemo(() => buildKuroshiroCacheKey(wordEntry.word, kanaMode), [wordEntry.word, kanaMode]);
   const cache = wordEntry.furiganaCache?.key === cacheKey ? wordEntry.furiganaCache : undefined;
 
@@ -30,7 +30,7 @@ function WordEntryTitle(props: {
         const nextCache = await ensureKuroshiroCacheEntry(wordEntry.word, kanaMode, cache, field);
         if (cancelled) return;
         if (nextCache.key === cache?.key && nextCache[field] === cache?.[field]) return;
-        onUpdateWordEntry({ ...wordEntry, furiganaCache: nextCache });
+        updateWordEntry(wordEntry.id, (prev) => ({ ...prev, furiganaCache: nextCache }));
       } catch {
         // Ignore and fall back to plain text.
       }
@@ -41,7 +41,7 @@ function WordEntryTitle(props: {
     return () => {
       cancelled = true;
     };
-  }, [cache, displayMode, furiganaAvailable, wordEntry, kanaMode, onUpdateWordEntry]);
+  }, [cache, displayMode, furiganaAvailable, wordEntry, kanaMode, updateWordEntry]);
 
   if (displayMode === "kana") {
     if (furiganaAvailable && cache?.kana) {
@@ -58,19 +58,11 @@ function WordEntryTitle(props: {
 }
 
 export function WordListPane(props: {
-  wordEntryState: WordEntryState;
+  wordEntries: WordEntries;
   settings: AppSettings;
   furiganaState: FuriganaState;
 }) {
-  const { wordEntryState, settings, furiganaState } = props;
-  const {
-    wordEntries,
-    selectedWordEntryId,
-    onSelect,
-    onNewWordEntry,
-    onDeleteWordEntry,
-    onUpdateWordEntry,
-  } = wordEntryState;
+  const { wordEntries, settings, furiganaState } = props;
   const { available: furiganaAvailable, status: furiganaStatus } = furiganaState;
   const [displayMode, setDisplayMode] = useState<DisplayMode>("natural");
 
@@ -98,7 +90,7 @@ export function WordListPane(props: {
             {furiganaAvailable ? <option value="furigana">With furigana</option> : null}
             <option value="kana">As kana</option>
           </select>
-          <button className="btn secondary" onClick={onNewWordEntry} style={{ flexShrink: 0, padding: "2px 8px" }}>
+          <button className="btn secondary" onClick={wordEntries.create} style={{ flexShrink: 0, padding: "2px 8px" }}>
             + New
           </button>
         </div>
@@ -106,8 +98,8 @@ export function WordListPane(props: {
 
       <div className="paneBody">
         <div className="list">
-          {wordEntries.map((wordEntry) => {
-            const selected = wordEntry.id === selectedWordEntryId;
+          {wordEntries.list.map((wordEntry) => {
+            const selected = wordEntry.id === wordEntries.selectedId;
             const title = wordEntry.word.trim() ? wordEntry.word.trim() : "(untitled)";
             const defs = wordEntry.definitions.length;
             const res = wordEntry.sentences.length;
@@ -116,7 +108,7 @@ export function WordListPane(props: {
               <div
                 key={wordEntry.id}
                 className={"item" + (selected ? " selected" : "")}
-                onClick={() => onSelect(wordEntry.id)}
+                onClick={() => wordEntries.select(wordEntry.id)}
                 role="button"
                 tabIndex={0}
               >
@@ -130,7 +122,7 @@ export function WordListPane(props: {
                         displayMode={displayMode}
                         furiganaAvailable={furiganaAvailable}
                         kanaMode={settings.furiganaKanaMode}
-                        onUpdateWordEntry={onUpdateWordEntry}
+                        updateWordEntry={wordEntries.update}
                       />
                     )}
                   </div>
@@ -143,7 +135,7 @@ export function WordListPane(props: {
                   className="btn danger"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onDeleteWordEntry(wordEntry.id);
+                    wordEntries.remove(wordEntry.id);
                   }}
                   title="Delete word entry"
                 >
@@ -154,7 +146,7 @@ export function WordListPane(props: {
           })}
         </div>
 
-        {wordEntries.length === 0 && <div className="muted">No word entries yet.</div>}
+        {wordEntries.list.length === 0 && <div className="muted">No word entries yet.</div>}
       </div>
     </div>
   );

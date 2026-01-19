@@ -6,7 +6,7 @@ import { applyTemplate } from "../shared/template";
 import type { LlmClient } from "../llm/llmClient";
 import Mustache from "mustache";
 import generateSentencesTemplate from "./generateSentences.mustache?raw";
-import { uid } from "../wordEntry/wordEntryStore";
+import { uid } from "../shared/common";
 
 type ModelItem = { defIndex: number; jp: string; en: string };
 

@@ -66,9 +66,8 @@ function rubyHtmlToAnki(rubyHtml: string): string {
   let lastIndex = 0;
 
   const needsSpaceBeforeKanji = (prevChar: string | undefined) => {
-    if (!prevChar) return false;
-    if (/\s/.test(prevChar)) return false;
-    if (/[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~、。・！？「」（）『』【】]/.test(prevChar)) return false;
+    if (!prevChar || prevChar == " ") return false;
+    //if (/[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~、。・！？「」（）『』【】]/.test(prevChar)) return false;
     return true;
   };
 

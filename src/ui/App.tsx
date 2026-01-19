@@ -3,22 +3,25 @@ import { WordListPane } from "../ui/WordListPane";
 import { WordSetupPane } from "../ui/WordSetupPane";
 import { GenerationsPane } from "../ui/GenerationsPane";
 import { SettingsModal } from "../ui/SettingsModal";
-import { useAppLogic } from "../app/AppLogic";
+import { useAppLogic } from "../app/appHooks";
 
 export default function App() {
+
   const {
     settings,
     setSettings,
     settingsOpen,
     setSettingsOpen,
     ankiStatus,
-    wordEntryState,
+    wordEntries,
     sentenceGenState,
     ankiExportState,
     furiganaState,
     doSettingsNeedAttention,
   } = useAppLogic();
-  const selectedWordEntry = wordEntryState.selectedWordEntry;
+
+  const selectedWordEntry = wordEntries.selected;
+  const settingsNeedAttention = doSettingsNeedAttention();
 
   return (
     <div className="app">
@@ -31,7 +34,7 @@ export default function App() {
         </div>
         <div className="row" style={{ gap: 8 }}>
           <button className="btn secondary" onClick={() => setSettingsOpen(true)}>
-            Settings{ doSettingsNeedAttention() ? " ⚠️" : "" }
+            Settings{ settingsNeedAttention ? " ⚠️" : "" }
           </button>
           <button className="btn" onClick={ankiExportState.onExport} disabled={ankiExportState.exportBusy}>
             {ankiExportState.exportBusy ? "Exporting…" : "Export"}
@@ -42,7 +45,7 @@ export default function App() {
       <main className="grid">
         <section className="pane">
           <WordListPane
-            wordEntryState={wordEntryState}
+            wordEntries={wordEntries}
             settings={settings}
             furiganaState={furiganaState}
           />
@@ -54,7 +57,7 @@ export default function App() {
               wordEntry={selectedWordEntry}
               settings={settings}
               sentenceGenState={sentenceGenState}
-              wordEntryState={wordEntryState}
+              wordEntries={wordEntries}
             />
           ) : (
             <div className="empty">No word selected.</div>
@@ -66,7 +69,7 @@ export default function App() {
             <GenerationsPane
               wordEntry={selectedWordEntry}
               settings={settings}
-              wordEntryState={wordEntryState}
+              wordEntries={wordEntries}
               sentenceGenState={sentenceGenState}
               ankiExportState={ankiExportState}
               furiganaState={furiganaState}
