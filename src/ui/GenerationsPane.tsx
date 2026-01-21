@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
+import type { FuriganaState } from "../app/appTypes";
 import type { AppSettings } from "../settings/settingsTypes";
-import type { WordEntry } from "../wordEntry/wordEntryTypes";
-import type { SentenceItem } from "../sentenceGen/sentenceGenTypes";
+import type { WordEntries, WordEntry } from "../wordEntry/wordEntryTypes";
+import type { SentenceGenState, SentenceItem } from "../sentenceGen/sentenceGenTypes";
+import type { AnkiExportState } from "../anki/ankiTypes";
 import { DIFFICULTY_PROFILES } from "../sentenceGen/sentenceGenDifficulty";
-import { touch } from "../wordEntry/wordEntryStore";
 import { buildKuroshiroCacheKey, ensureKuroshiroCacheEntry } from "../kuroshiro/kuroshiroService";
 
 type DisplayMode = "natural" | "furigana" | "kana";
@@ -62,25 +63,16 @@ function SentenceDisplay(props: {
 export function GenerationsPane(props: {
   wordEntry: WordEntry;
   settings: AppSettings;
-  busy: boolean;
-  err: string | null;
-  notice: string | null;
-  onClearMessages: () => void;
-  onUpdateWordEntry: (wordEntry: WordEntry) => void;
-  furiganaAvailable: boolean;
-  furiganaStatus: "idle" | "loading" | "ready" | "error";
+  wordEntries: WordEntries;
+  sentenceGenState: SentenceGenState;
+  ankiExportState: AnkiExportState;
+  furiganaState: FuriganaState;
 }) {
-  const {
-    wordEntry,
-    settings,
-    busy,
-    err,
-    notice,
-    onClearMessages,
-    onUpdateWordEntry,
-    furiganaAvailable,
-    furiganaStatus,
-  } = props;
+  const { wordEntry, settings, wordEntries, sentenceGenState, ankiExportState, furiganaState } = props;
+  const { generationErr: err, generationNotice: notice, clearMessages, generationBusy } = sentenceGenState;
+  const { exportBusy } = ankiExportState;
+  const { available: furiganaAvailable, status: furiganaStatus } = furiganaState;
+  const busy = generationBusy || exportBusy;
   const [groupBy, setGroupBy] = useState<"definition" | "batch">("definition");
   const [displayMode, setDisplayMode] = useState<DisplayMode>("natural");
 
@@ -91,46 +83,43 @@ export function GenerationsPane(props: {
   }, [displayMode, furiganaAvailable]);
 
   function onRemove(sentenceId: string) {
-    onUpdateWordEntry(
-      touch({ ...wordEntry, sentences: wordEntry.sentences.filter((sentence) => sentence.id !== sentenceId) })
-    );
+    wordEntries.update(wordEntry.id, (prev) => ({
+      ...prev,
+      sentences: prev.sentences.filter((sentence) => sentence.id !== sentenceId)
+    }));
   }
 
   function onToggleExport(sentenceId: string) {
-    onUpdateWordEntry(
-      touch({
-        ...wordEntry,
-        sentences: wordEntry.sentences.map((sentence) =>
-          sentence.id === sentenceId
-            ? { ...sentence, exportEnabled: !sentence.exportEnabled }
-            : sentence
-        ),
-      })
-    );
+    wordEntries.update(wordEntry.id, (prev) => ({
+      ...prev,
+      sentences: prev.sentences.map((sentence) =>
+        sentence.id === sentenceId
+          ? { ...sentence, exportEnabled: !sentence.exportEnabled }
+          : sentence
+      ),
+    }));
   }
 
   function onClear() {
     if (!wordEntry.sentences.length) return;
     const confirmed = window.confirm("Clear all sentences for this word?");
     if (!confirmed) return;
-    onUpdateWordEntry(
-      touch({ ...wordEntry, generations: [], generationBatches: [], sentences: [], status: "draft" })
+    wordEntries.update(wordEntry.id, (prev) =>
+      ({ ...prev, generations: [], generationBatches: [], sentences: [], status: "draft" })
     );
-    onClearMessages();
+    clearMessages();
   }
 
   function onToggleAllExports() {
     if (!wordEntry.sentences.length) return;
     const allChecked = wordEntry.sentences.every((sentence) => sentence.exportEnabled);
-    onUpdateWordEntry(
-      touch({
-        ...wordEntry,
-        sentences: wordEntry.sentences.map((sentence) => ({
-          ...sentence,
-          exportEnabled: !allChecked,
-        })),
-      })
-    );
+    wordEntries.update(wordEntry.id, (prev) => ({
+      ...prev,
+      sentences: prev.sentences.map((sentence) => ({
+        ...sentence,
+        exportEnabled: !allChecked,
+      })),
+    }));
   }
 
   const groupedByBatch = useMemo(() => {
@@ -187,14 +176,12 @@ export function GenerationsPane(props: {
   const allExportsEnabled = hasSentences && wordEntry.sentences.every((sentence) => sentence.exportEnabled);
 
   function updateSentenceCache(sentenceId: string, cache: SentenceItem["furiganaCache"]) {
-    onUpdateWordEntry(
-      touch({
-        ...wordEntry,
-        sentences: wordEntry.sentences.map((sentence) =>
-          sentence.id === sentenceId ? { ...sentence, furiganaCache: cache } : sentence,
-        ),
-      }),
-    );
+    wordEntries.update(wordEntry.id, (prev) => ({
+      ...prev,
+      sentences: prev.sentences.map((sentence) =>
+        sentence.id === sentenceId ? { ...sentence, furiganaCache: cache } : sentence,
+      ),
+    }));
   }
 
   return (

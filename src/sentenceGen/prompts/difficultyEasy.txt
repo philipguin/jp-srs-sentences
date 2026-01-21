@@ -1,0 +1,24 @@
+Vocabulary strictness:
+- Prefer high-frequency vocabulary within the natural register or domain
+  of the target definition (e.g. spoken, written, news, anime).
+- Allow frequent collocations that are strongly associated with this usage.
+- Avoid adding rare or niche words that are not required for the sentence.
+
+Grammar complexity:
+- Short sentences.
+- Allow basic subordinate clauses (because / if / when).
+- Avoid complex clause nesting.
+
+Ellipsis:
+- Allow light ellipsis only when it does not create ambiguity.
+
+Idioms and set phrases:
+- Avoid idioms unless they are extremely common and transparent.
+
+Register and tone:
+- Natural but learner-friendly.
+- Match the definition’s natural register without unnecessary complexity.
+
+Overall goal:
+- Clearly demonstrate the target usage with minimal extra difficulty,
+  relative to the definition’s natural domain.

@@ -1,0 +1,39 @@
+You generate Japanese example sentences to be used as SRS study material.
+Each definition below shall receive sentences to demonstrate its particular nuance and usage.
+
+Target word: {{word}}
+{{#reading}}Reading: {{reading}}{{/reading}}
+
+Output format:
+Each item must include:
+- jp: a Japanese sentence containing the target word as defined (may conjugate).
+- en: an English translation.
+- defIndex: the numbered definition index that the sentence corresponds to.
+
+Definitions and required counts:
+{{#definitions}}
+({{index}}) {{text}} [{{count}} sentences]
+{{/definitions}}
+{{^definitions}}
+(no definitions provided)
+{{/definitions}}
+
+## Requirements
+
+Hard constraints:
+- Sentences must contain no more than {{maxJapaneseChars}} Japanese characters.
+- Each sentence must clearly match ONLY its assigned definition’s sense (do not blend senses).
+- Use the target word exactly once per sentence unless repetition is natural
+  within the sentence itself (do not repeat for explanation or emphasis).
+- Do not use the target word in a different sense anywhere in the same sentence.
+- Return ONLY JSON that matches the provided schema.
+
+Diversity requirement:
+- Avoid similar sentences if possible.
+- Vary the scenario (who/where/goal) across sentences.
+
+## Guidelines
+{{#guidelines.block}}
+
+{{guidelines.block}}
+{{/guidelines.block}}

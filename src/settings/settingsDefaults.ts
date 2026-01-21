@@ -4,7 +4,7 @@ export function defaultSettings(): AppSettings {
   return {
     apiKey: "",
     rememberApiKey: false,
-    model: "gpt-5-chat-latest",
+    model: "gpt-5.2-chat-latest",
 
     jpdbApiKey: "",
     rememberJpdbApiKey: false,

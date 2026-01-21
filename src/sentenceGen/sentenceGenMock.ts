@@ -8,6 +8,7 @@ export function buildMockGenerations(
   settings: AppSettings,
   difficulty: Difficulty,
 ): SentenceGeneration[] {
+  
   const now = Date.now();
   const results: SentenceGeneration[] = [];
 

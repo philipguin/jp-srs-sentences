@@ -1,8 +1,5 @@
 import type { WordEntry } from "./wordEntryTypes";
-
-export function uid(): string {
-  return Math.random().toString(16).slice(2) + Date.now().toString(16);
-}
+import { uid } from "../shared/common";
 
 export function createEmptyWordEntry(): WordEntry {
   const now = Date.now();
@@ -19,10 +16,6 @@ export function createEmptyWordEntry(): WordEntry {
     createdAt: now,
     updatedAt: now,
   };
-}
-
-export function touch(wordEntry: WordEntry): WordEntry {
-  return { ...wordEntry, updatedAt: Date.now() };
 }
 
 export function normalizeWordEntry(wordEntry: WordEntry): WordEntry {

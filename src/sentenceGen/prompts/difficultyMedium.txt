@@ -1,0 +1,24 @@
+Vocabulary strictness:
+- Prefer vocabulary commonly encountered within the natural register or domain
+  of the target definition (e.g. spoken, written, news, anime).
+- Allow frequent collocations and natural word pairings for this usage.
+- Avoid overly academic, technical, or niche vocabulary unless required.
+
+Grammar complexity:
+- Natural sentence flow with multiple clauses when appropriate.
+- Allow a mix of coordination and subordination.
+- Sentence structure should feel natural, not simplified.
+
+Ellipsis:
+- Allow common ellipsis, including dropping obvious subjects.
+
+Idioms and set phrases:
+- Allow common idioms and set expressions when they fit naturally.
+
+Register and tone:
+- Natural, domain-appropriate Japanese.
+- Balanced between clarity and authenticity.
+
+Overall goal:
+- Present the target word in a sentence that feels normal for its domain,
+  without deliberately simplifying beyond what native usage would allow.

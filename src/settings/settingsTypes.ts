@@ -2,7 +2,7 @@ import type { AnkiFieldSource } from "../anki/ankiTypes";
 export type KanaMode = "hiragana" | "katakana";
 
 
-export interface AppSettings {
+export type AppSettings = {
   apiKey: string;
   rememberApiKey: boolean;
   model: string;
