@@ -9,7 +9,7 @@ export type DifficultyProfile = {
   shortHelp: string;
 
   // Prompt-facing:
-  promptGuidelines: string;
+  promptGuidelines: object;
   maxJapaneseChars: number;
 };
 

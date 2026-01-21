@@ -5,7 +5,7 @@ import { DIFFICULTY_PROFILES } from "./sentenceGenDifficulty";
 import { applyTemplate } from "../shared/template";
 import type { LlmClient } from "../llm/llmClient";
 import Mustache from "mustache";
-import generateSentencesTemplate from "./generateSentences.mustache?raw";
+import generateSentencesTemplate from "./prompts/generateSentences.mustache?raw";
 import { uid } from "../shared/common";
 
 type ModelItem = { defIndex: number; jp: string; en: string };
@@ -17,7 +17,7 @@ function buildPromptForGenerateSentences(wordEntry: WordEntry, difficultyKey: Di
   return Mustache.render(generateSentencesTemplate, {
     word: wordEntry.word,
     reading: wordEntry.reading,
-    difficultyGuidelines: difficulty.promptGuidelines,
+    guidelines: difficulty.promptGuidelines,
     maxJapaneseChars: difficulty.maxJapaneseChars,
     definitions: wordEntry.definitions.map((d) => ({
       index: d.index,

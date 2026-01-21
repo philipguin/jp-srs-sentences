@@ -1,0 +1,21 @@
+Vocabulary strictness:
+- Very common, everyday vocabulary only.
+- Avoid domain-specific terms unless absolutely required by the target word.
+- Prefer general words over precise or nuanced alternatives.
+
+Grammar complexity:
+- Single main clause only.
+- No subordinate clauses.
+
+Ellipsis:
+- Avoid ellipsis. Do not omit subjects or objects.
+
+Idioms and set phrases:
+- Do not use unless absolutely required by the target word.
+
+Register and tone:
+- Neutral, concrete, and literal.
+- Optimize for clarity and first exposure.
+
+Overall goal:
+- Make the target word’s meaning obvious with minimal cognitive load.

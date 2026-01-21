@@ -1,0 +1,21 @@
+Vocabulary strictness:
+- No restrictions beyond natural usage.
+- Use whatever vocabulary a native speaker or writer would naturally choose.
+
+Grammar complexity:
+- No structural simplification.
+- Use natural clause complexity and sentence flow.
+
+Ellipsis:
+- Use natural omission and ellipsis freely.
+
+Idioms and set phrases:
+- Use idioms, set expressions, and culturally normal phrasing as appropriate.
+
+Register and tone:
+- Fully native-like and contextually authentic.
+- Optimize for nuance and naturalness over learner clarity.
+
+Overall goal:
+- Produce sentences indistinguishable from those of a native,
+  even if they are challenging for learners.
