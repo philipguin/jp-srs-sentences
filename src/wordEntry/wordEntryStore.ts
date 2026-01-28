@@ -7,6 +7,7 @@ export function createEmptyWordEntry(): WordEntry {
     id: uid(),
     word: "",
     reading: "",
+    definitionsEditing: true,
     definitionsRaw: "",
     definitions: [],
     generations: [],
@@ -21,6 +22,7 @@ export function createEmptyWordEntry(): WordEntry {
 export function normalizeWordEntry(wordEntry: WordEntry): WordEntry {
   return {
     ...wordEntry,
+    definitionsEditing: wordEntry.definitionsEditing ?? (!wordEntry.definitions || wordEntry.definitions.length == 0),
     definitions: wordEntry.definitions ?? [],
     generations: wordEntry.generations ?? [],
     generationBatches: wordEntry.generationBatches ?? [],

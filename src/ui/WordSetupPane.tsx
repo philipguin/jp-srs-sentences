@@ -5,6 +5,7 @@ import type { WordEntries, DefinitionStudyPriority, DefinitionValidity, WordEntr
 import { DIFFICULTY_PROFILES } from "../sentenceGen/sentenceGenDifficulty";
 import { applyCountPreset, mergeCounts, parseDefinitions } from "../wordEntry/wordEntryDefinitions";
 import { applyTemplate } from "../shared/template";
+import { jpdbParse, jpdbAddVocabulary } from "../jpdb/jpdbApi";
 
 export function WordSetupPane(props: {
   wordEntry: WordEntry;
@@ -21,6 +22,7 @@ export function WordSetupPane(props: {
     analyze,
     setDifficulty,
   } = sentenceGenState;
+
   const [definitionsLoading, setDefinitionsLoading] = useState(false);
 
   const validityColors: Record<DefinitionValidity, string> = { //"#aa00cc";//"#f85149";
@@ -34,19 +36,6 @@ export function WordSetupPane(props: {
     ignore_for_now: "#c5b975",//"#9ca3af",//"#866",
   };
 
-  function setDefinitionsRaw(raw: string) {
-    const parsed = parseDefinitions(raw);
-    const withPreset = applyCountPreset(parsed, settings.defaultCountPreset);
-
-    wordEntries.update(wordEntry.id, (prev) => ({
-      ...prev,
-      definitionsRaw: raw,
-      definitions: mergeCounts(withPreset, prev.definitions),
-      generations: [],
-      status: "draft",
-    }));
-  }
-
   function setDefCount(defIndex: number, count: number) {
     wordEntries.update(wordEntry.id, (prev) => ({
       ...prev,
@@ -56,44 +45,82 @@ export function WordSetupPane(props: {
     }));
   }
 
+  function startEditingDefinitions() {
+    wordEntries.update(wordEntry.id, (prev) => ({ ...prev, definitionsEditing: true }));
+  }
+  //function cancelEditingDefinitions() {
+  //  wordEntries.update(wordEntry.id, (prev) => ({ ...prev, definitionsEditing: false }));
+  //}
+  function finishEditingDefinitions() {
+
+    const parsed = parseDefinitions(wordEntry.definitionsRaw);
+    const withPreset = applyCountPreset(parsed, settings.defaultCountPreset);
+
+    wordEntries.update(wordEntry.id, (prev) => ({
+      ...prev,
+      definitionsEditing: false,
+      definitions: mergeCounts(withPreset, prev.definitions),
+      generations: [],
+      status: "draft",
+    }));
+  }
+
   async function populateFromJpdb() {
     const keyword = wordEntry.word.trim();
     if (!keyword) return;
     if (!settings.jpdbApiKey) {
-      console.error("Missing JPDB API key (Settings → Dictionary).");
+      console.error("Missing JPDB API key (Settings → jpdb.io).");
       return;
     }
-
     setDefinitionsLoading(true);
     try {
       // Note: "lookup-vocabulary" endpoint expects an sid and vid,
       // which we don't have yet. So we "parse" instead.
-      const response = await fetch("https://jpdb.io/api/v1/parse", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${settings.jpdbApiKey}`,
-          "Content-Type": "application/json",
+      
+      const { vocabulary } = await jpdbParse(
+        settings.jpdbApiKey, keyword, [],
+        ["vid", "sid", "reading", "frequency_rank", "meanings", "card_level", "card_state"],
+      );
+      const item = vocabulary[0]
+      if (!item) throw new Error("Parse returned nothing");
+
+      const meanings = item["meanings"] as string[] ?? [];
+      const lines = meanings.map((meaning: string, index: number) => `${index + 1}. ${meaning}`);
+      const newDefsRaw = lines.join("\n");
+
+      wordEntries.update(wordEntry.id, (prev) => ({
+        ...prev,
+        reading: item["reading"] as string,
+        definitionsRaw: newDefsRaw,
+        jpdb: {
+          vid: item["vid"] as number,
+          sid: item["sid"] as number,
+          frequencyRank: item["frequency_rank"] as number,
+          cardLevel: item["card_level"] as number,
+          cardState: item["card_state"] as string,
         },
-        body: JSON.stringify({
-          text: keyword,
-          token_fields: [],
-          vocabulary_fields: ["meanings"],
-          position_length_encoding: "utf16"
-        }),
-      });
+      }));
+    } catch (error) {
+      console.error("Failed to load definitions from JPDB.", error);
+    } finally {
+      setDefinitionsLoading(false);
+    }
+  }
 
-      if (!response.ok) {
-        throw new Error(`JPDB request failed (${response.status})`);
-      }
-
-      const payload = (await response.json()) as {
-        tokens?: number[];
-        vocabulary: [string[]][];
-      };
-      const meanings = payload.vocabulary?.[0]?.[0] ?? [];
-      const lines = meanings.map((meaning, index) => `${index + 1}. ${meaning}`);
-
-      setDefinitionsRaw(lines.join("\n"));
+  async function addToJpdbDeck() {
+    const wordJpdb = wordEntry.jpdb;
+    if (!wordJpdb) return;
+    if (!settings.jpdbApiKey) {
+      console.error("Missing JPDB API key (Settings → jpdb.io).");
+      return;
+    }
+    if (!settings.jpdbDeckId) {
+      console.error("Missing JPDB Deck (Settings → jpdb.io).");
+      return;
+    }
+    setDefinitionsLoading(true);
+    try {
+      await jpdbAddVocabulary(settings.jpdbApiKey, settings.jpdbDeckId, [[wordJpdb.vid, wordJpdb.sid]])
     } catch (error) {
       console.error("Failed to load definitions from JPDB.", error);
     } finally {
@@ -109,59 +136,69 @@ export function WordSetupPane(props: {
       </div>
 
       <div className="paneBody" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <div className="row">
-          <input
-            className="input"
-            placeholder="Word (dictionary form)"
-            value={wordEntry.word}
-            onChange={(e) => wordEntries.update(wordEntry.id, (prev) => ({ ...prev, word: e.target.value }))}
-          />
-        </div>
+        <input
+          className="input"
+          placeholder="Word (dictionary form)"
+          value={wordEntry.word}
+          onChange={(e) => wordEntries.update(wordEntry.id, (prev) => ({ ...prev, word: e.target.value }))}
+        />
+        <input
+          className="input"
+          placeholder="Reading (optional)"
+          value={wordEntry.reading ?? ""}
+          onChange={(e) => wordEntries.update(wordEntry.id, (prev) => ({ ...prev, reading: e.target.value }))}
+        />
 
-        <div className="row">
-          <input
-            className="input"
-            placeholder="Reading (optional)"
-            value={wordEntry.reading ?? ""}
-            onChange={(e) => wordEntries.update(wordEntry.id, (prev) => ({ ...prev, reading: e.target.value }))}
-          />
-        </div>
-
-        <div className="row" style={{ justifyContent: "space-between", alignItems: "end" }}>
-          <div className="muted">Definitions (paste numbered lines like “1. …” “2. …”)</div>
+        <div className="row" style={{ justifyContent: "end" }}>
           <button
             className="btn secondary"
-            type="button"
-            onClick={populateFromJpdb}
-            disabled={!settings.jpdbApiKey || definitionsLoading || wordEntry.word.trim().length === 0}
-            style={{ padding: 0 }}
+            onClick={addToJpdbDeck}
+            disabled={!settings.jpdbApiKey || !wordEntry.jpdb || definitionsLoading}
           >
-            <span
-              title="Retrieves definitions from jpdb.io (must be configured in settings)"
-              style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, padding: "4px 8px" }}
-            >
+            <span title="Adds to jpdb.io deck (must be configured in settings)">
               {definitionsLoading ? <span className="spinner" /> : null}
-              {definitionsLoading ? "Fetching…" : "Fetch from jpdb.io"}
+              {definitionsLoading ? "Adding…" : "Add to jpdb"}
             </span>
           </button>
         </div>
-        <textarea
-          className="textarea"
-          value={wordEntry.definitionsRaw}
-          onChange={(e) => setDefinitionsRaw(e.target.value)}
-          placeholder={"1. to ...\n2. to ...\n3. ..."}
-          style={{ minHeight: 42, height: 100, resize: "vertical" }}
-        />
 
-        <div className="row" style={{ justifyContent: "space-between" }}>
-          <div className="muted">Parsed definitions</div>
-          <div className="small">Count preset: {settings.defaultCountPreset}</div>
-        </div>
-
-        {wordEntry.definitions.length === 0 ? (
-          <div className="muted">Paste definitions above to populate this list.</div>
+        {wordEntry.definitionsEditing ? (
+          <div>
+            <div className="muted">Definitions (paste numbered lines like “1. …” “2. …”)</div>
+            <textarea
+              className="textarea"
+              value={wordEntry.definitionsRaw}
+              onChange={(e) => wordEntries.update(wordEntry.id, (prev) => ({ ...prev, definitionsRaw: e.target.value }))}
+              placeholder={"1. to ...\n2. to ...\n3. ..."}
+              style={{ width: "100%", minHeight: 42, height: 100, resize: "vertical" }}
+            />
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, paddingTop: 4 }}>
+              <button
+                className="btn secondary"
+                onClick={populateFromJpdb}
+                disabled={!settings.jpdbApiKey || definitionsLoading || wordEntry.word.trim().length === 0}
+              >
+                <span title="Retrieves definitions from jpdb.io (must be configured in settings)">
+                  {definitionsLoading ? <span className="spinner" /> : null}
+                  {definitionsLoading ? "Fetching…" : "Fetch from jpdb"}
+                </span>
+              </button>
+              <button
+                className="btn secondary"
+                onClick={finishEditingDefinitions}
+                disabled={analyzeBusy || generationBusy || !wordEntry?.definitionsRaw}
+              >
+                <span title="Finalizes the definitions before analysis and sentence generation">
+                  Parse
+                </span>
+              </button>
+            </div>
+          </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div className="row" style={{ justifyContent: "space-between" }}>
+              <div className="muted">Parsed definitions</div>
+            </div>
             {wordEntry.definitions.map((d) => (
               <div
                 key={d.index}
@@ -255,21 +292,28 @@ export function WordSetupPane(props: {
                 />
               </div>
             ))}
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, paddingTop: 4 }}>
+              <button
+                className="btn secondary"
+                onClick={startEditingDefinitions}
+                disabled={analyzeBusy || generationBusy || !wordEntry.word || wordEntry.definitions.length === 0}
+              >
+                Edit
+              </button>
+              <button
+                className="btn secondary"
+                onClick={analyze}
+                disabled={analyzeBusy || generationBusy || !wordEntry.word || wordEntry.definitions.length === 0}
+                title="Analyzes definitions for study recommendations using the configured LLM."
+              >
+                {analyzeBusy && "Analyzing…"}
+                {!analyzeBusy && !wordEntry.definitions?.[0]?.studyPriority && "Analyze"}
+                {!analyzeBusy && wordEntry.definitions?.[0]?.studyPriority && "Reanalyze"}
+              </button>
+            </div>
           </div>
         )}
-
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, paddingTop: 4 }}>
-          <button
-            className="btn secondary"
-            onClick={analyze}
-            disabled={analyzeBusy || generationBusy || !wordEntry.word || wordEntry.definitions.length === 0}
-            title="Analyzes definitions for study recommendations using the configured LLM."
-          >
-            {analyzeBusy && "Analyzing…"}
-            {!analyzeBusy && !wordEntry.definitions?.[0]?.studyPriority && "Analyze"}
-            {!analyzeBusy && wordEntry.definitions?.[0]?.studyPriority && "Reanalyze"}
-          </button>
-        </div>
 
         <div className="muted">Sentence Generation</div>
 
@@ -300,6 +344,9 @@ export function WordSetupPane(props: {
           </button>
         </div>
 
+        <div className="muted" style={{ display: "flex", flexDirection: "row", justifyContent: "flex-start" }}>
+          {wordEntry.jpdb ? "jpdb associated · VID: " + wordEntry.jpdb.vid + ", SID: " + wordEntry.jpdb.sid : "jpdb unassociated"}
+        </div>
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ import type { AppSettings } from "../settings/settingsTypes";
 import type { Difficulty } from "../sentenceGen/sentenceGenTypes";
 import type { WordEntry, WordEntries } from "../wordEntry/wordEntryTypes";
 import type { AnkiExportState } from "./ankiTypes";
-import { useAnkiConnectStatus, fetchModelFieldNames, addNotes } from "./ankiConnect";
+import { useAnkiConnectStatus, fetchAnkiModelFieldNames, addAnkiNotes } from "./ankiConnect";
 import { buildAnkiFieldPayload, buildAnkiTags } from "./ankiExport";
 
 export function useAnkiStatus() {
@@ -50,7 +50,7 @@ export function useAnkiExport(args: {
 
     setExportBusy(true);
     try {
-      const fieldNames = await fetchModelFieldNames(settings.ankiModelName);
+      const fieldNames = await fetchAnkiModelFieldNames(settings.ankiModelName);
       if (fieldNames.length === 0) {
         messages.setGenerationErr("Selected note type has no fields. Check Settings → AnkiConnect.");
         return;
@@ -84,7 +84,7 @@ export function useAnkiExport(args: {
         }),
       );
 
-      const results = await addNotes(notes);
+      const results = await addAnkiNotes(notes);
 
       const updates = new Map<string, { status: "exported" | "failed"; enabled: boolean }>();
       let successCount = 0;

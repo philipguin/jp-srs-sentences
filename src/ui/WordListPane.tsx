@@ -76,33 +76,38 @@ export function WordListPane(props: {
     <div className="paneInner">
       <div className="paneHeader">
         <div className="paneTitle">Word List</div>
-        <div className="row" style={{ gap: 8 }}>
+        <div className="row">
           {settings.enableFurigana && furiganaStatus === "loading" ? (
             <span className="badge">Loading…</span>
-          ) : null}
-          <select
-            className="select"
-            value={displayMode}
-            onChange={(e) => setDisplayMode(e.target.value as DisplayMode)}
-            style={{ padding: "4px 8px" }}
-          >
-            <option value="natural">Naturally</option>
-            {furiganaAvailable ? <option value="furigana">With furigana</option> : null}
-            <option value="kana">As kana</option>
-          </select>
-          <button className="btn secondary" onClick={wordEntries.create} style={{ flexShrink: 0, padding: "2px 8px" }}>
-            + New
-          </button>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span className="muted" style={{ fontSize: 14 }}>
+                Display
+              </span>
+              <select
+                className="select"
+                value={displayMode}
+                onChange={(e) => setDisplayMode(e.target.value as DisplayMode)}
+                style={{ padding: "4px 8px" }}
+              >
+                <option value="natural">Naturally</option>
+                {furiganaAvailable ? <option value="furigana">With furigana</option> : null}
+                <option value="kana">As kana</option>
+              </select>
+          </div>
+          )}
         </div>
       </div>
 
       <div className="paneBody">
         <div className="list">
+          <button className="btn secondary" onClick={wordEntries.create}>
+            + New
+          </button>
           {wordEntries.list.map((wordEntry) => {
             const selected = wordEntry.id === wordEntries.selectedId;
             const title = wordEntry.word.trim() ? wordEntry.word.trim() : "(untitled)";
-            const defs = wordEntry.definitions.length;
-            const res = wordEntry.sentences.length;
+            const jpdb = wordEntry.jpdb;
 
             return (
               <div
@@ -111,8 +116,15 @@ export function WordListPane(props: {
                 onClick={() => wordEntries.select(wordEntry.id)}
                 role="button"
                 tabIndex={0}
+                style={{
+                  display: "flex", 
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 4,
+                }}
               >
-                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "start", gap: 0 }}>
                   <div style={{ fontWeight: 650 }}>
                     {title === "(untitled)" ? (
                       title
@@ -127,12 +139,16 @@ export function WordListPane(props: {
                     )}
                   </div>
                   <div className="small">
-                    defs: {defs} · sentences: {res} · {wordEntry.status}
+                    {jpdb &&
+                      <span>
+                        top {jpdb.frequencyRank} · {jpdb.cardState}{jpdb.cardLevel != null && " · lvl " + jpdb.cardLevel}
+                      </span>
+                    }
                   </div>
                 </div>
-
                 <button
                   className="btn danger"
+                  style={{ padding: "2px 6px" }}
                   onClick={(e) => {
                     e.stopPropagation();
                     wordEntries.remove(wordEntry.id);

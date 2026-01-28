@@ -39,19 +39,19 @@ export async function fetchAnkiVersion(): Promise<number> {
   return invokeAnkiConnect<number>("version");
 }
 
-export async function fetchDeckNames(): Promise<string[]> {
+export async function fetchAnkiDeckNames(): Promise<string[]> {
   return invokeAnkiConnect<string[]>("deckNames");
 }
 
-export async function fetchModelNames(): Promise<string[]> {
+export async function fetchAnkiModelNames(): Promise<string[]> {
   return invokeAnkiConnect<string[]>("modelNames");
 }
 
-export async function fetchModelFieldNames(modelName: string): Promise<string[]> {
+export async function fetchAnkiModelFieldNames(modelName: string): Promise<string[]> {
   return invokeAnkiConnect<string[]>("modelFieldNames", { modelName });
 }
 
-export async function addNotes(notes: AnkiConnectNote[]): Promise<Array<number | null>> {
+export async function addAnkiNotes(notes: AnkiConnectNote[]): Promise<Array<number | null>> {
   return invokeAnkiConnect<Array<number | null>>("addNotes", { notes });
 }
 

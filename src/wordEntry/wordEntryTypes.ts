@@ -16,10 +16,19 @@ export type DefinitionSpec = {
   colocations?: string[];
 }
 
+export type WordEntryJpdb = {
+  vid: number;
+  sid: number;
+  frequencyRank: number;
+  cardState: string;
+  cardLevel: number;
+};
+
 export type WordEntry = {
   id: string;
   word: string;
   reading?: string;
+  definitionsEditing: boolean;
   definitionsRaw: string;
   definitions: DefinitionSpec[];
   generations: SentenceGeneration[];
@@ -30,6 +39,7 @@ export type WordEntry = {
   createdAt: number;
   updatedAt: number;
   lastError?: string;
+  jpdb?: WordEntryJpdb;
 }
 
 export type WordEntries = {

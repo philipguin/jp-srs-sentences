@@ -77,7 +77,7 @@ body {
   background: #2b67f6;
   color: white;
   border: none;
-  padding: 8px 10px;
+  padding: 6px 10px;
   border-radius: 10px;
   cursor: pointer;
   font-weight: 600;
@@ -91,6 +91,8 @@ body {
   background: #23283a;
   color: #e8eaf0;
   border: 1px solid #303753;
+  padding: 4px 8px;
+  font-size: 14px;
 }
 
 .btn.danger {
@@ -120,6 +122,7 @@ body {
   border-radius: 10px;
   padding: 8px 10px;
   outline: none;
+  box-sizing: border-box;
 }
 
 .textarea {

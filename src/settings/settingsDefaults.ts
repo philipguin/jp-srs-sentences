@@ -8,6 +8,8 @@ export function defaultSettings(): AppSettings {
 
     jpdbApiKey: "",
     rememberJpdbApiKey: false,
+    jpdbDeckId: 0,
+    jpdbDeckName: "",
 
     notesTemplate: "{word} here means “{meaning}”.",
 

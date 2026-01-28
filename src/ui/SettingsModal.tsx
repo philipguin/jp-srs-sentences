@@ -2,17 +2,25 @@ import { useEffect, useMemo, useState } from "react";
 import type { AnkiFieldSource } from "../anki/ankiTypes";
 import type { AppSettings } from "../settings/settingsTypes";
 import { ANKI_FIELD_OPTIONS } from "../anki/ankiFields";
-import { fetchDeckNames, fetchModelFieldNames, fetchModelNames } from "../anki/ankiConnect";
+import { jpdbListUserDecks } from "../jpdb/jpdbApi";
+import type { JpdbDeck } from "../jpdb/jpdbApi";
+import { fetchAnkiDeckNames, fetchAnkiModelFieldNames, fetchAnkiModelNames } from "../anki/ankiConnect";
 import { validateTemplateMacros } from "../shared/template";
 
 const NOTES_TEMPLATE_ALLOWLIST = [
   "word",
-  "reading",
-  "difficulty",
+  "wordKana",
+  "wordFuri",
+  "wordFuriHtml",
   "meaning",
   "meaningNumber",
   "sentenceJp",
+  "sentenceJpKana",
+  "sentenceJpFuri",
+  "sentenceJpFuriHtml",
   "sentenceEn",
+  "difficulty",
+  "reading",
 ];
 
 function SectionTitle(props: { children: React.ReactNode; right?: React.ReactNode }) {
@@ -85,8 +93,13 @@ export function SettingsModal(props: {
 }) {
   const { settings, onChange, onClose, furiganaStatus } = props;
   const [activeTab, setActiveTab] = useState<
-    "llm" | "dictionary" | "defaults" | "furigana" | "anki"
+    "llm" | "jpdb" | "defaults" | "furigana" | "anki"
   >("llm");
+
+  const [jpdbDecks, setJpdbDecks] = useState<JpdbDeck[]>([]);
+  const [jpdbError, setJpdbError] = useState<string | null>(null);
+  const [jpdbLoading, setJpdbLoading] = useState(false);
+
   const [ankiDecks, setAnkiDecks] = useState<string[]>([]);
   const [ankiModels, setAnkiModels] = useState<string[]>([]);
   const [ankiFields, setAnkiFields] = useState<string[]>([]);
@@ -102,10 +115,33 @@ export function SettingsModal(props: {
   useEffect(() => {
     let cancelled = false;
     async function load() {
+      setJpdbLoading(true);
+      setJpdbError(null);
+      try {
+        const decks = await jpdbListUserDecks(settings.jpdbApiKey);
+        if (cancelled) return;
+        setJpdbDecks(decks);
+      } catch (e) {
+        if (cancelled) return;
+        const message = e instanceof Error ? e.message : String(e);
+        setJpdbError(message);
+      } finally {
+        if (!cancelled) setJpdbLoading(false);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
       setAnkiLoading(true);
       setAnkiError(null);
       try {
-        const [decks, models] = await Promise.all([fetchDeckNames(), fetchModelNames()]);
+        const [decks, models] = await Promise.all([fetchAnkiDeckNames(), fetchAnkiModelNames()]);
         if (cancelled) return;
         setAnkiDecks(decks);
         setAnkiModels(models);
@@ -134,7 +170,7 @@ export function SettingsModal(props: {
       setAnkiFieldsLoading(true);
       setAnkiFieldsError(null);
       try {
-        const fields = await fetchModelFieldNames(settings.ankiModelName);
+        const fields = await fetchAnkiModelFieldNames(settings.ankiModelName);
         if (cancelled) return;
         setAnkiFields(fields);
       } catch (e) {
@@ -172,17 +208,25 @@ export function SettingsModal(props: {
     if (!current || list.includes(current)) return list;
     return [current, ...list];
   }
+  function ensureOption2(list: JpdbDeck[], current: JpdbDeck): JpdbDeck[] {
+    if (!current?.id || list.some((x) => x.id == current.id)) return list;
+    return [current, ...list];
+  }
 
-  const deckOptions = ensureOption(ankiDecks, settings.ankiDeckName);
-  const modelOptions = ensureOption(ankiModels, settings.ankiModelName);
+  const jpdbDeckOptions = ensureOption2(jpdbDecks, { id: settings.jpdbDeckId, name: settings.jpdbDeckName });
+  const missingJpdbDeck = !!settings.jpdbDeckId && jpdbDecks.length > 0 && !jpdbDecks.some((x) => x.id == settings.jpdbDeckId);
+  const jpdbHasProblem = !!jpdbError || missingJpdbDeck;
 
-  const missingDeck = !!settings.ankiDeckName && ankiDecks.length > 0 && !ankiDecks.includes(settings.ankiDeckName);
+  const ankiDeckOptions = ensureOption(ankiDecks, settings.ankiDeckName);
+  const ankiModelOptions = ensureOption(ankiModels, settings.ankiModelName);
+
+  const missingAnkiDeck = !!settings.ankiDeckName && ankiDecks.length > 0 && !ankiDecks.includes(settings.ankiDeckName);
   const missingModel = !!settings.ankiModelName && ankiModels.length > 0 && !ankiModels.includes(settings.ankiModelName);
   const hasJpField = Object.values(currentFieldMapping).includes("sentenceJp");
   const hasEnField = Object.values(currentFieldMapping).includes("sentenceEn");
 
   const ankiConfigured = !!settings.ankiDeckName || !!settings.ankiModelName;
-  const ankiHasProblem = !!ankiError || !!ankiFieldsError || missingDeck || missingModel;
+  const ankiHasProblem = !!ankiError || !!ankiFieldsError || missingAnkiDeck || missingModel;
   const ankiMissingRequired = !settings.ankiDeckName || !settings.ankiModelName;
   const showAnkiWarning = ankiHasProblem || ankiMissingRequired;
   const showLlmWarning = !settings.model || !settings.apiKey;
@@ -264,7 +308,7 @@ export function SettingsModal(props: {
           >
             {[
               { id: "llm", label: "LLM", showWarning: showLlmWarning },
-              { id: "dictionary", label: "Dictionary" },
+              { id: "jpdb", label: "jpdb.io" },
               { id: "defaults", label: "Defaults" },
               { id: "furigana", label: "Kana/Furigana" },
               { id: "anki", label: "AnkiConnect", showWarning: showAnkiWarning },
@@ -274,7 +318,7 @@ export function SettingsModal(props: {
                 type="button"
                 className="btn secondary"
                 onClick={() =>
-                  setActiveTab(tab.id as "llm" | "dictionary" | "defaults" | "furigana" | "anki")
+                  setActiveTab(tab.id as "llm" | "jpdb" | "defaults" | "furigana" | "anki")
                 }
                 aria-pressed={activeTab === tab.id}
                 style={{
@@ -361,8 +405,17 @@ export function SettingsModal(props: {
               </div>
             ) : null}
 
-            {activeTab === "dictionary" ? (
+            {activeTab === "jpdb" ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {jpdbLoading ? <span className="badge">loading…</span> : null}
+                  {jpdbHasProblem ? <span className="badge" style={{ borderColor: "#3a1f1f" }}>needs attention</span> : null}
+                </div>
+                {jpdbError ? (
+                  <Callout tone="danger" title="JPDB Error">
+                    {jpdbError}
+                  </Callout>
+                ) : null}
                 <Field
                   label="jpdb.io API key"
                 >
@@ -398,6 +451,35 @@ export function SettingsModal(props: {
                     jpdb.io API key will not be saved; it will clear on refresh unless you enable “Remember”.
                   </Callout>
                 ) : null}
+
+                <Field label="Deck" help="JPDB deck to which words can be added.">
+                  <select
+                    className="select"
+                    value={settings.jpdbDeckId}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value == "") {
+                        return patch({ jpdbDeckId: 0, jpdbDeckName: "" });
+                      } else {
+                        const id = Number(value);
+                        const name = jpdbDeckOptions.find((x) => x.id == id)!.name;
+                        return patch({ jpdbDeckId: id, jpdbDeckName: name });
+                      }
+                    }}
+                  >
+                    <option value="">Select a deck…</option>
+                    {jpdbDeckOptions.map((deck) => (
+                      <option key={deck.id} value={deck.id}>
+                        {deck.name}
+                      </option>
+                    ))}
+                  </select>
+                  {missingJpdbDeck ? (
+                    <div className="small" style={{ color: "#f2a2a2", marginTop: 6 }}>
+                      Selected deck isn’t available on JPDB. Select another deck or create it on JPDB.
+                    </div>
+                  ) : null}
+                </Field>
               </div>
             ) : null}
 
@@ -465,13 +547,13 @@ export function SettingsModal(props: {
                     onChange={(e) => patch({ ankiDeckName: e.target.value })}
                   >
                     <option value="">Select a deck…</option>
-                    {deckOptions.map((deck) => (
+                    {ankiDeckOptions.map((deck) => (
                       <option key={deck} value={deck}>
                         {deck}
                       </option>
                     ))}
                   </select>
-                  {missingDeck ? (
+                  {missingAnkiDeck ? (
                     <div className="small" style={{ color: "#f2a2a2", marginTop: 6 }}>
                       Selected deck isn’t available in Anki. Re-select a deck or fix it in Anki.
                     </div>
@@ -485,7 +567,7 @@ export function SettingsModal(props: {
                     onChange={(e) => patch({ ankiModelName: e.target.value })}
                   >
                     <option value="">Select a note type…</option>
-                    {modelOptions.map((model) => (
+                    {ankiModelOptions.map((model) => (
                       <option key={model} value={model}>
                         {model}
                       </option>

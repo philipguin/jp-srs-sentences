@@ -422,7 +422,6 @@ export function GenerationsPane(props: {
           className="btn secondary"
           onClick={onToggleAllExports}
           disabled={busy || !hasSentences}
-          style={{ padding: "4px 8px" }}
         >
           {allExportsEnabled ? "Uncheck All Exports" : "Check All Exports"}
         </button>
@@ -430,7 +429,6 @@ export function GenerationsPane(props: {
           className="btn secondary"
           onClick={onClear}
           disabled={busy || !hasSentences}
-          style={{ padding: "4px 8px" }}
         >
           Remove All
         </button>

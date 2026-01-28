@@ -9,6 +9,8 @@ export type AppSettings = {
 
   jpdbApiKey: string;
   rememberJpdbApiKey: boolean;
+  jpdbDeckId: number;
+  jpdbDeckName: string;
 
   notesTemplate: string;
 
